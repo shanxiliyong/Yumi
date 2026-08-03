@@ -307,48 +307,67 @@ public class ReactAgent extends BaseAgent {
         return new AgentSubGraphNode(this.name, includeContents, returnReasoningContents, this.compiledGraph, this.instruction);
     }
 
+    /**
+     * 初始化并构建 ReAct Agent 的状态图
+     * <p>
+     * 该方法实现了 ReAct（Reasoning + Acting）模式的图构建流程，主要包括：
+     * 1. 注入默认的 InstructionAgentHook，处理指令逻辑
+     * 2. 验证 Hook 的唯一性，设置 Agent 名称和引用
+     * 3. 创建 StateGraph，注册 Agent Model 节点和 Tool 节点
+     * 4. 为需要工具的 Hook 注入工具依赖
+     * 5. 按 HookPosition 分类 Hook（BEFORE_AGENT、AFTER_AGENT、BEFORE_MODEL、AFTER_MODEL）
+     * 6. 为各类 Hook 创建对应的图节点
+     * 7. 确定节点执行流程（入口节点、循环入口、循环出口、退出节点）
+     * 8. 建立节点之间的边连接关系
+     *
+     * @return 构建完成的 StateGraph 实例
+     * @throws GraphStateException 如果图构建过程中出现状态异常
+     */
     @Override
     protected StateGraph initGraph() throws GraphStateException {
 
+        // 初始化 hooks 列表，如果为 null 则创建空列表
         if (hooks == null) {
             hooks = new ArrayList<>();
         }
 
-        // Always inject default InstructionAgentHook so instruction is handled in beforeAgent
+        // 始终注入默认的 InstructionAgentHook，确保指令在 beforeAgent 阶段被处理
         List<Hook> effectiveHooks = new ArrayList<>();
         effectiveHooks.add(InstructionAgentHook.create());
         effectiveHooks.addAll(hooks);
 
-        // Validate hook uniqueness
+        // 验证 Hook 的唯一性，不允许重复的 Hook 实例
         Set<String> hookNames = new HashSet<>();
         for (Hook hook : effectiveHooks) {
             if (!hookNames.add(Hook.getFullHookName(hook))) {
                 throw new IllegalArgumentException("Duplicate hook instances found");
             }
 
-            // set agent name to every hook node.
+            // 为每个 Hook 节点设置 Agent 名称和引用
             hook.setAgentName(this.name);
             hook.setAgent(this);
         }
 
-        // Create graph with state serializer
+        // 创建 StateGraph，使用消息键策略工厂和状态序列化器
         StateGraph graph = new StateGraph(name, buildMessagesKeyStrategyFactory(effectiveHooks), stateSerializer);
 
+        // 注册 Agent Model 节点，用于调用 LLM 进行推理
         graph.addNode(AGENT_MODEL_NAME, node_async(this.llmNode));
+        // 如果有工具，注册 Tool 节点，用于执行工具调用
         if (hasTools) {
             graph.addNode(AGENT_TOOL_NAME, node_async(this.toolNode));
         }
 
-        // some hooks may need tools so they can do some initialization/cleanup on start/end of agent loop
+        // 为需要工具的 Hook 注入工具依赖，支持 Hook 在初始化/清理阶段使用工具
         setupToolsForHooks(effectiveHooks, toolNode);
 
-        // Categorize hooks by position
+        // 按 HookPosition 分类 Hook，确定它们在 Agent 生命周期中的执行位置
         List<Hook> beforeAgentHooks = filterHooksByPosition(effectiveHooks, HookPosition.BEFORE_AGENT);
         List<Hook> afterAgentHooks = filterHooksByPosition(effectiveHooks, HookPosition.AFTER_AGENT);
         List<Hook> beforeModelHooks = filterHooksByPosition(effectiveHooks, HookPosition.BEFORE_MODEL);
         List<Hook> afterModelHooks = filterHooksByPosition(effectiveHooks, HookPosition.AFTER_MODEL);
 
-        // Add hook nodes for beforeAgent hooks
+        // 为 BEFORE_AGENT 类型的 Hook 创建图节点
         for (Hook hook : beforeAgentHooks) {
             if (hook instanceof AgentHook agentHook) {
                 graph.addNode(Hook.getFullHookName(hook) + ".before", agentHook::beforeAgent);
@@ -357,7 +376,7 @@ public class ReactAgent extends BaseAgent {
             }
         }
 
-        // Add hook nodes for afterAgent hooks
+        // 为 AFTER_AGENT 类型的 Hook 创建图节点
         for (Hook hook : afterAgentHooks) {
             if (hook instanceof AgentHook agentHook) {
                 graph.addNode(Hook.getFullHookName(hook) + ".after", agentHook::afterAgent);
@@ -366,10 +385,11 @@ public class ReactAgent extends BaseAgent {
             }
         }
 
-        // Add hook nodes for beforeModel hooks
+        // 为 BEFORE_MODEL 类型的 Hook 创建图节点（在 LLM 调用前执行）
         for (Hook hook : beforeModelHooks) {
             if (hook instanceof ModelHook modelHook) {
                 if (hook instanceof InterruptionHook interruptionHook) {
+                    // InterruptionHook 特殊处理，用于人工介入场景
                     graph.addNode(Hook.getFullHookName(hook) + ".beforeModel", interruptionHook);
                 } else {
                     graph.addNode(Hook.getFullHookName(hook) + ".beforeModel", modelHook::beforeModel);
@@ -379,10 +399,11 @@ public class ReactAgent extends BaseAgent {
             }
         }
 
-        // Add hook nodes for afterModel hooks
+        // 为 AFTER_MODEL 类型的 Hook 创建图节点（在 LLM 调用后执行）
         for (Hook hook : afterModelHooks) {
             if (hook instanceof ModelHook modelHook) {
                 if (hook instanceof HumanInTheLoopHook humanInTheLoopHook) {
+                    // HumanInTheLoopHook 特殊处理，用于人工确认场景
                     graph.addNode(Hook.getFullHookName(hook) + ".afterModel", humanInTheLoopHook);
                 } else {
                     graph.addNode(Hook.getFullHookName(hook) + ".afterModel", modelHook::afterModel);
@@ -392,13 +413,13 @@ public class ReactAgent extends BaseAgent {
             }
         }
 
-        // Determine node flow
-        String entryNode = determineEntryNode(beforeAgentHooks, beforeModelHooks);
-        String loopEntryNode = determineLoopEntryNode(beforeModelHooks);
-        String loopExitNode = determineLoopExitNode(afterModelHooks);
-        String exitNode = determineExitNode(afterAgentHooks);
+        // 确定节点执行流程的关键节点
+        String entryNode = determineEntryNode(beforeAgentHooks, beforeModelHooks);      // 入口节点
+        String loopEntryNode = determineLoopEntryNode(beforeModelHooks);                  // 循环入口节点（ReAct 循环开始）
+        String loopExitNode = determineLoopExitNode(afterModelHooks);                     // 循环出口节点（ReAct 循环结束）
+        String exitNode = determineExitNode(afterAgentHooks);                             // 退出节点
 
-        // Set up edges
+        // 建立节点之间的边连接关系
         graph.addEdge(START, entryNode);
         setupHookEdges(graph, beforeAgentHooks, afterAgentHooks, beforeModelHooks, afterModelHooks,
                 entryNode, loopEntryNode, loopExitNode, exitNode, this);
