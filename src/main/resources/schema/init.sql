@@ -181,7 +181,67 @@ CREATE TABLE IF NOT EXISTS `id_generator`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='ID 生成器表';
 
 -- ============================================
--- 8. 初始化数据
+-- 9. 知识库管理表
+-- ============================================
+
+-- 知识库表
+CREATE TABLE IF NOT EXISTS `knowledge_base`
+(
+    `id`          BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `name`        VARCHAR(100) NOT NULL COMMENT '知识库名称',
+    `description` VARCHAR(500)          DEFAULT NULL COMMENT '描述',
+    `tenant_id`   VARCHAR(36)           DEFAULT NULL COMMENT '租户ID',
+    `status`      TINYINT               DEFAULT 1 COMMENT '状态 0-禁用 1-启用',
+    `create_time` DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME              DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `update_user` VARCHAR(100)          DEFAULT NULL COMMENT '更新人',
+    PRIMARY KEY (`id`),
+    KEY           `idx_tenant_id` (`tenant_id`),
+    KEY           `idx_update_time` (`update_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识库表';
+
+-- 知识库文档表
+CREATE TABLE IF NOT EXISTS `knowledge_document`
+(
+    `id`                BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `knowledge_base_id` BIGINT       NOT NULL COMMENT '知识库ID',
+    `title`             VARCHAR(200) NOT NULL COMMENT '文档标题',
+    `content`           TEXT                  DEFAULT NULL COMMENT '文档内容',
+    `doc_type`          VARCHAR(20)           DEFAULT 'text' COMMENT '文档类型 text/markdown/pdf/word',
+    `source`            VARCHAR(20)           DEFAULT 'manual' COMMENT '来源 upload/url/manual',
+    `source_url`        VARCHAR(500)          DEFAULT NULL COMMENT '来源URL',
+    `chunk_count`       INT                   DEFAULT 0 COMMENT '分块数量',
+    `vector_ids`        TEXT                  DEFAULT NULL COMMENT '向量ID列表(JSON数组)',
+    `status`            TINYINT               DEFAULT 0 COMMENT '状态 0-待处理 1-处理中 2-已完成 3-失败',
+    `error_msg`         VARCHAR(500)          DEFAULT NULL COMMENT '错误信息',
+    `tenant_id`         VARCHAR(36)           DEFAULT NULL COMMENT '租户ID',
+    `created_by`        VARCHAR(100)          DEFAULT NULL COMMENT '创建人',
+    `create_time`       DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`       DATETIME              DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted`           TINYINT               DEFAULT 0 COMMENT '逻辑删除 0-未删除 1-已删除',
+    PRIMARY KEY (`id`),
+    KEY                 `idx_knowledge_base_id` (`knowledge_base_id`),
+    KEY                 `idx_tenant_id` (`tenant_id`),
+    KEY                 `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识库文档表';
+
+-- 向量索引表（MySQL 存储向量元数据）
+CREATE TABLE IF NOT EXISTS `vector_index`
+(
+    `id`              BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `document_id`     BIGINT       NOT NULL COMMENT '文档ID',
+    `chunk_index`     INT          NOT NULL COMMENT '分块序号',
+    `chunk_content`   TEXT         NOT NULL COMMENT '分块内容',
+    `embedding`       JSON                  DEFAULT NULL COMMENT '向量数据(JSON数组)',
+    `metadata`        JSON                  DEFAULT NULL COMMENT '元数据(JSON)',
+    `create_time`     DATETIME              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY               `idx_document_id` (`document_id`),
+    KEY               `idx_chunk_index` (`chunk_index`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='向量索引表';
+
+-- ============================================
+-- 10. 初始化数据
 -- ============================================
 
 -- 插入系统工具

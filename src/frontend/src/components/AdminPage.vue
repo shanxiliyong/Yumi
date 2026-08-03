@@ -10,12 +10,14 @@ import {
   Fold,
   Expand,
   User,
-  Key
+  Key,
+  Collection
 } from '@element-plus/icons-vue';
 import DigitalHumanManage from './DigitalHumanManage.vue';
 import SkillManage from './SkillManage.vue';
 import ToolManage from './ToolManage.vue';
 import DashboardPage from './DashboardPage.vue';
+import KnowledgeManage from './KnowledgeManage.vue';
 
 const props = defineProps(['username']);
 const emit = defineEmits(['logout', 'navigate']);
@@ -68,6 +70,10 @@ const handleMenuSelect = (index) => {
             <ElIcon><DataAnalysis /></ElIcon>
             <template #title>Dashboard</template>
           </ElMenuItem>
+          <ElMenuItem index="knowledge">
+            <ElIcon><Collection /></ElIcon>
+            <template #title>知识库管理</template>
+          </ElMenuItem>
           <ElMenuItem index="digitalHuman">
             <ElIcon><Avatar /></ElIcon>
             <template #title>数字人管理</template>
@@ -102,7 +108,7 @@ const handleMenuSelect = (index) => {
       <!-- 顶部栏 -->
       <div class="admin-header">
         <div class="header-left">
-          <span class="breadcrumb">首页 / {{ activeMenu === 'dashboard' ? 'Dashboard' : activeMenu === 'digitalHuman' ? '数字人管理' : activeMenu === 'skill' ? 'Skill 管理' : 'Tool 管理' }}</span>
+          <span class="breadcrumb">首页 / {{ activeMenu === 'dashboard' ? 'Dashboard' : activeMenu === 'knowledge' ? '知识库管理' : activeMenu === 'digitalHuman' ? '数字人管理' : activeMenu === 'skill' ? 'Skill 管理' : 'Tool 管理' }}</span>
         </div>
         <div class="header-right">
           <ElButton class="back-btn" @click="goBack">
@@ -131,6 +137,7 @@ const handleMenuSelect = (index) => {
       <!-- 内容区域 -->
       <div class="admin-content">
         <DashboardPage v-if="activeMenu === 'dashboard'" />
+        <KnowledgeManage v-else-if="activeMenu === 'knowledge'" :username="props.username" />
         <DigitalHumanManage v-else-if="activeMenu === 'digitalHuman'" :username="props.username" />
         <SkillManage v-else-if="activeMenu === 'skill'" :username="props.username" />
         <ToolManage v-else-if="activeMenu === 'tool'" :username="props.username" />
