@@ -471,11 +471,15 @@ onMounted(() => {
                 >
                   <ElIcon><Document /></ElIcon>
                 </ElButton>
-                <ElPopconfirm title="确定删除此文档？" @confirm="handleDocDelete(row)">
-                  <ElButton type="danger" link class="action-btn" title="删除文档">
-                    <ElIcon><Delete /></ElIcon>
-                  </ElButton>
-                </ElPopconfirm>
+                <ElButton 
+                  type="danger" 
+                  link 
+                  @click="handleDocDelete(row)"
+                  class="action-btn"
+                  title="删除文档"
+                >
+                  <ElIcon><Delete /></ElIcon>
+                </ElButton>
               </div>
             </template>
           </ElTableColumn>
