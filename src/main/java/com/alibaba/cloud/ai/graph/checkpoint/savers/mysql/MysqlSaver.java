@@ -15,6 +15,7 @@
  */
 package com.alibaba.cloud.ai.graph.checkpoint.savers.mysql;
 
+import com.alibaba.cloud.ai.graph.StateGraph;
 import com.alibaba.cloud.ai.graph.checkpoint.Checkpoint;
 import com.alibaba.cloud.ai.graph.checkpoint.savers.jdbc.AbstractJdbcCheckpointSaver;
 import com.alibaba.cloud.ai.graph.serializer.StateSerializer;
