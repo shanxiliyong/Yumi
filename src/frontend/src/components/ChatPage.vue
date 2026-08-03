@@ -370,13 +370,17 @@ const initApp = async () => {
     const currentSession = sessions.value.find(s => s.sessionId === sessionId.value)
     if (currentSession) {
       currentSessionName.value = currentSession.name
-      // 当前会话存在但消息为空 → 从后端加载
       if (!messages.value || messages.value.length === 0) {
         await loadMessagesFromBackend(sessionId.value)
       }
     } else {
       await switchSession(sessions.value[0])
     }
+  } else {
+    sessionId.value = null
+    currentSessionName.value = ''
+    messages.value = []
+    localStorage.removeItem('currentSessionId')
   }
   scrollToBottom()
 }
@@ -512,35 +516,45 @@ onMounted(() => {
 
       <!-- 聊天消息区域 -->
       <div ref="chatContainer" class="chat-messages">
-        <div v-for="msg in messages" :key="msg.id" :class="['message-item', `message-${msg.type}`]">
-          <template v-if="msg.type === 'user'">
-            <div class="message-content user-content">{{ msg.content }}</div>
-            <ElAvatar class="avatar user-avatar">{{ props.username.charAt(0) }}</ElAvatar>
-          </template>
-          <template v-else-if="msg.type === 'bot'">
-            <ElAvatar class="avatar bot-avatar">Y</ElAvatar>
-            <div class="message-content bot-content" v-html="renderMarkdown(msg.content)"></div>
-          </template>
-          <template v-else-if="msg.type === 'loading'">
-            <ElAvatar class="avatar bot-avatar">Y</ElAvatar>
-            <div class="loading-indicator"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
-            </div>
-          </template>
+        <!-- 无会话提示 -->
+        <div v-if="!sessionId" class="empty-state">
+          <div class="empty-icon"></div>
+          <div class="empty-text">暂无会话</div>
+          <div class="empty-hint">请点击左侧 "+新对话" 开始聊天</div>
         </div>
+        <!-- 有会话时显示消息 -->
+        <template v-else>
+          <div v-for="msg in messages" :key="msg.id" :class="['message-item', `message-${msg.type}`]">
+            <template v-if="msg.type === 'user'">
+              <div class="message-content user-content">{{ msg.content }}</div>
+              <ElAvatar class="avatar user-avatar">{{ props.username.charAt(0) }}</ElAvatar>
+            </template>
+            <template v-else-if="msg.type === 'bot'">
+              <ElAvatar class="avatar bot-avatar">Y</ElAvatar>
+              <div class="message-content bot-content" v-html="renderMarkdown(msg.content)"></div>
+            </template>
+            <template v-else-if="msg.type === 'loading'">
+              <ElAvatar class="avatar bot-avatar">Y</ElAvatar>
+              <div class="loading-indicator"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+              </div>
+            </template>
+          </div>
+        </template>
       </div>
 
       <!-- 输入区域 -->
-      <div class="chat-input-wrapper">
+      <div class="chat-input-wrapper" :class="{ disabled: !sessionId }">
         <div class="chat-input-box">
           <textarea v-model="inputMessage" class="message-textarea"
-            :placeholder="isRecording ? '正在聆听，请说话...' : '向 Yumi 优秘 提问'" :disabled="isSending"
+            :placeholder="!sessionId ? '请先创建会话' : (isRecording ? '正在聆听，请说话...' : '向 Yumi 优秘 提问')" :disabled="isSending || !sessionId"
             @keyup.enter.exact.prevent="sendMessage"></textarea>
 
           <div class="input-tools">
             <div class="tools-left">
               <button class="tool-icon-btn mic-btn" :class="{ active: isRecording }" @mousedown.prevent="startRecording"
                 @mouseup.prevent="stopRecording" @mouseleave="stopRecording"
-                :title="speechSupported ? '按住说话（松开发送）' : '浏览器不支持语音'">
+                :disabled="!sessionId"
+                :title="!sessionId ? '请先创建会话' : (speechSupported ? '按住说话（松开发送）' : '浏览器不支持语音')">
                 <svg v-if="!isRecording" class="icon-svg" viewBox="0 0 24 24" width="22" height="22"
                   stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
@@ -555,8 +569,8 @@ onMounted(() => {
               </button>
             </div>
 
-            <button class="send-circle-btn" :class="{ disabled: !inputMessage.trim() && !isRecording }"
-              @click="sendMessage" :disabled="isSending">
+            <button class="send-circle-btn" :class="{ disabled: !inputMessage.trim() && !isRecording || !sessionId }"
+              @click="sendMessage" :disabled="isSending || !sessionId">
               <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2.5"
                 stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="19" x2="12" y2="5"></line>
