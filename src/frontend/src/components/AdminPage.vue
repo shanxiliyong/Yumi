@@ -378,28 +378,6 @@ const handleMenuSelect = (index) => {
   font-size: 14px;
 }
 
-:deep(.el-dropdown-menu__item.is-disabled) {
-  color: #1e293b;
-  cursor: default;
-  background: transparent;
-}
-
-.dropdown-user-info {
-  padding: 4px 0;
-}
-
-.dropdown-username {
-  font-weight: 600;
-  color: #1e293b;
-  font-size: 14px;
-}
-
-.dropdown-role {
-  font-size: 12px;
-  color: #94a3b8;
-  margin-top: 2px;
-}
-
 .logout-item {
   color: #ef4444;
 }
