@@ -95,26 +95,37 @@ import static java.lang.String.format;
 
 
 public class ReactAgent extends BaseAgent {
+    /** 日志记录器，用于记录 ReactAgent 运行时的日志信息 */
     Logger logger = LoggerFactory.getLogger(ReactAgent.class);
 
+    /** 线程 ID 与状态映射表，用于维护不同线程的执行状态 */
     private final ConcurrentMap<String, Map<String, Object>> threadIdStateMap;
 
+    /** Agent LLM 节点，负责调用大语言模型进行推理 */
     private final AgentLlmNode llmNode;
 
+    /** Agent 工具节点，负责执行工具调用 */
     private final AgentToolNode toolNode;
 
+    /** Hook 列表，用于在 Agent 生命周期的不同阶段插入自定义逻辑 */
     private List<? extends Hook> hooks;
 
+    /** 模型拦截器列表，用于在 LLM 调用前后进行拦截处理 */
     private List<ModelInterceptor> modelInterceptors;
 
+    /** 工具拦截器列表，用于在工具调用前后进行拦截处理 */
     private List<ToolInterceptor> toolInterceptors;
 
+    /** 流式模型拦截器列表，用于在流式输出时进行拦截处理 */
     private List<StreamingModelInterceptor> streamingInterceptors;
 
+    /** Agent 指令，定义 Agent 的行为和角色 */
     private String instruction;
 
+    /** 状态序列化器，用于状态的序列化、反序列化和工厂创建 */
     private StateSerializer stateSerializer;
 
+    /** 是否包含工具的标志，用于判断是否需要注册 Tool 节点 */
     private final Boolean hasTools;
 
     public ReactAgent(AgentLlmNode llmNode, AgentToolNode toolNode, CompileConfig compileConfig, Builder builder) {

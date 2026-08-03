@@ -47,63 +47,62 @@ import java.util.Set;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
 /**
- * Represents a state graph with nodes and edges.
+ * LangGraph 状态图核心类
+ * <p>
+ * StateGraph 是 LangGraph 框架中用于定义和执行有状态工作流的核心组件。
+ * 它支持：
+ * <ul>
+ *   <li>定义图中的节点（Node）和边（Edge）</li>
+ *   <li>管理状态序列化与反序列化</li>
+ *   <li>支持条件边和并行执行</li>
+ *   <li>支持子图嵌套（SubGraph）</li>
+ *   <li>支持检查点保存与恢复（Checkpoint）</li>
+ * </ul>
+ * <p>
+ * 典型使用流程：
+ * <pre>
+ *   StateGraph graph = new StateGraph("myGraph", keyStrategyFactory);
+ *   graph.addNode("node1", action1);
+ *   graph.addNode("node2", action2);
+ *   graph.addEdge(START, "node1");
+ *   graph.addEdge("node1", "node2");
+ *   graph.addEdge("node2", END);
+ *   CompiledGraph compiled = graph.compile();
+ * </pre>
  */
 public class StateGraph {
 
-    /**
-     * Constant representing the END of the graph.
-     */
+    /** 图结束节点标识符，表示工作流执行完毕 */
     public static final String END = "__END__";
 
-    /**
-     * Constant representing the START of the graph.
-     */
+    /** 图开始节点标识符，表示工作流入口 */
     public static final String START = "__START__";
 
-    /**
-     * Constant representing the ERROR of the graph.
-     */
+    /** 图错误节点标识符，表示异常处理节点 */
     public static final String ERROR = "__ERROR__";
 
-    /**
-     * Constant representing the NODE_BEFORE of the graph.
-     */
+    /** 节点执行前钩子标识符，用于在节点执行前插入逻辑 */
     public static final String NODE_BEFORE = "__NODE_BEFORE__";
 
-    /**
-     * Constant representing the NODE_AFTER of the graph.
-     */
+    /** 节点执行后钩子标识符，用于在节点执行后插入逻辑 */
     public static final String NODE_AFTER = "__NODE_AFTER__";
 
-    /**
-     * Collection of nodes in the graph.
-     */
+    /** 图中所有节点的集合，按添加顺序维护 */
     final Nodes nodes = new Nodes();
 
-    /**
-     * Collection of edges in the graph.
-     */
+    /** 图中所有边的集合，定义节点之间的连接关系 */
     final Edges edges = new Edges();
 
-    /**
-     * Factory for providing key strategies.
-     */
+    /** 键策略工厂，用于定义状态中各个键的更新策略（如覆盖、追加、合并等） */
     private final KeyStrategyFactory keyStrategyFactory;
 
-    /**
-     * Name of the graph.
-     */
+    /** 图的名称，用于标识和日志记录 */
     private final String name;
 
-    /**
-     * Serializer for the state.
-     */
+    /** 状态序列化器，用于状态的序列化、反序列化和工厂创建 */
     private final StateSerializer stateSerializer;
 
-    /**
-     * Default Jackson serializer instance.
-     */
+    /** 默认的 Jackson 序列化器实例，基于 Spring AI 和 Jackson 实现 */
     public static final StateSerializer DEFAULT_JACKSON_SERIALIZER = new SpringAIJacksonStateSerializer(OverAllState::new, new ObjectMapper());
 
     /**
