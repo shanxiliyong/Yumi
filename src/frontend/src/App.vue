@@ -4,6 +4,7 @@ import LoginPage from './components/LoginPage.vue'
 import ChatPage from './components/ChatPage.vue'
 import AgentPage from './components/AgentPage.vue'
 import DigitalHumanPage from './components/DigitalHumanPage.vue'
+import AdminPage from './components/AdminPage.vue'
 
 const isLoggedIn = ref(false)
 const username = ref('')
@@ -68,6 +69,12 @@ onMounted(() => {
       />
       <DigitalHumanPage
         v-else-if="currentPage === 'digitalHuman'"
+        :username="username"
+        @logout="handleLogout"
+        @navigate="handleNavigate"
+      />
+      <AdminPage
+        v-else-if="currentPage === 'admin'"
         :username="username"
         @logout="handleLogout"
         @navigate="handleNavigate"

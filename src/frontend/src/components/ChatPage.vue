@@ -1,6 +1,7 @@
 <script setup>
 import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue'
-import { ElButton, ElInput, ElAvatar, ElMessage, ElSelect, ElOption, ElDrawer, ElPopconfirm, ElIcon } from 'element-plus'
+import { ElButton, ElInput, ElAvatar, ElMessage, ElSelect, ElOption, ElDrawer, ElPopconfirm, ElIcon, ElDropdown, ElDropdownMenu, ElDropdownItem } from 'element-plus'
+import { Setting, User } from '@element-plus/icons-vue'
 import { marked } from 'marked'
 
 marked.setOptions({
@@ -13,8 +14,8 @@ marked.setOptions({
 const props = defineProps(['username'])
 const emit = defineEmits(['logout', 'navigate'])
 
-const navigateToDigitalHumanPage = () => {
-  emit('navigate', 'digitalHuman')
+const navigateToAdmin = () => {
+  emit('navigate', 'admin')
 }
 
 const messages = ref([])
@@ -428,6 +429,16 @@ onMounted(() => {
 
       <div class="sidebar-divider" v-if="showSidebar"></div>
 
+      <!-- 管理后台按钮 -->
+      <div class="sidebar-admin" v-if="showSidebar">
+        <ElButton class="admin-btn" @click="navigateToAdmin">
+          <span class="btn-icon">⚙</span>
+          <span class="btn-text">管理后台</span>
+        </ElButton>
+      </div>
+
+      <div class="sidebar-divider" v-if="showSidebar"></div>
+
       <!-- 历史对话列表 -->
       <div class="history-section" v-if="showSidebar">
         <div class="section-title">历史对话</div>
@@ -457,11 +468,6 @@ onMounted(() => {
         <div v-if="sessions.length === 0" class="empty-sessions">暂无对话</div>
       </div>
 
-      <!-- 退出登录按钮 -->
-      <div class="sidebar-footer" v-if="showSidebar">
-        <ElButton type="text" class="logout-btn" @click="handleLogout">退出登录</ElButton>
-      </div>
-
       <!-- 折叠按钮 -->
       <div class="collapse-btn" @click="showSidebar = !showSidebar">
         <span>{{ showSidebar ? '‹' : '›' }}</span>
@@ -476,7 +482,6 @@ onMounted(() => {
           <ElAvatar class="avatar" :size="36">Y</ElAvatar>
           <div class="header-info">
             <h3>{{ currentSessionName }}</h3>
-            <p class="username-tag">{{ props.username }}</p>
           </div>
         </div>
 
@@ -490,7 +495,26 @@ onMounted(() => {
         </div>
 
         <div class="header-right">
-          <ElButton class="agent-admin-btn" @click="navigateToDigitalHumanPage">数字人管理</ElButton>
+          <!-- 用户信息下拉菜单 -->
+          <ElDropdown class="user-dropdown" trigger="click">
+            <div class="user-trigger">
+              <div class="user-avatar">{{ props.username.charAt(0).toUpperCase() }}</div>
+              <span class="dropdown-arrow"></span>
+            </div>
+            <template #dropdown>
+              <ElDropdownMenu>
+                <ElDropdownItem disabled>
+                  <div class="dropdown-user-info">
+                    <div class="dropdown-username">{{ props.username }}</div>
+                  </div>
+                </ElDropdownItem>
+                <ElDropdownItem divided @click="handleLogout" class="logout-item">
+                  <ElIcon><Setting /></ElIcon>
+                  <span>退出登录</span>
+                </ElDropdownItem>
+              </ElDropdownMenu>
+            </template>
+          </ElDropdown>
         </div>
       </div>
 
@@ -626,6 +650,27 @@ onMounted(() => {
   font-size: 14px;
 }
 
+.sidebar-admin {
+  padding: 0 12px 12px;
+}
+
+.admin-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #f5f7fa;
+  color: #606266;
+  border: 1px solid #e4e7ed;
+}
+
+.admin-btn:hover {
+  background: #ecf5ff;
+  color: #409eff;
+  border-color: #b3d8ff;
+}
+
 .sidebar-divider {
   height: 1px;
   background: #e4e7ed;
@@ -733,23 +778,6 @@ onMounted(() => {
   font-size: 14px;
 }
 
-.sidebar-footer {
-  padding: 12px;
-  border-top: 1px solid #e4e7ed;
-}
-
-.sidebar-footer .logout-btn {
-  width: 100%;
-  color: #909399;
-  border: none;
-  padding: 8px;
-}
-
-.sidebar-footer .logout-btn:hover {
-  background: #f5f7fa;
-  color: #606266;
-}
-
 .collapse-btn {
   position: absolute;
   right: -12px;
@@ -807,12 +835,6 @@ onMounted(() => {
   font-weight: 600;
 }
 
-.username-tag {
-  margin: 0;
-  font-size: 12px;
-  opacity: 0.8;
-}
-
 .header-center {
   position: absolute;
   left: 50%;
@@ -840,6 +862,72 @@ onMounted(() => {
 
 .header-right {
   margin-left: auto;
+}
+
+/* 用户下拉菜单 */
+.user-dropdown {
+  cursor: pointer;
+}
+
+.user-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.user-trigger:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.dropdown-arrow {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid rgba(255, 255, 255, 0.7);
+  margin-left: 4px;
+}
+
+/* 下拉菜单样式 */
+:deep(.el-dropdown-menu__item) {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+:deep(.el-dropdown-menu__item.is-disabled) {
+  color: #1e293b;
+  cursor: default;
+  background: transparent;
+}
+
+.dropdown-user-info {
+  padding: 4px 0;
+}
+
+.dropdown-username {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 14px;
 }
 
 .agent-admin-btn {
