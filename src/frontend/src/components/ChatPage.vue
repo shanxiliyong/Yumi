@@ -226,6 +226,9 @@ const switchSession = async (session) => {
   sessionId.value = session.sessionId
   currentSessionName.value = session.name
   localStorage.setItem('currentSessionId', session.sessionId.toString())
+  if (session.digitalHumanId) {
+    selectedDigitalHumanId.value = session.digitalHumanId
+  }
   // 切换会话时，始终从后端加载该会话的消息历史
   await loadMessagesFromBackend(session.sessionId)
   await nextTick(); scrollToBottom()
