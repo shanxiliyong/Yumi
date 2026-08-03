@@ -1,0 +1,160 @@
+{
+  "model": "qwen3.7-max",
+  "input": {
+    "messages": [
+      {
+        "content": "- 第一行：表头行\n- 第二行：分隔行（`| ----- | ----- |`），不可省略\n- 后续逐行填充数据\n3. **不允许把表格所有内容挤在同一行、不允许连续`||`分隔、不允许缺失分隔横线**\n4. 不要在表格内部插入多余换行、空格破坏语法\n\n### 4. 固定输出结构（顺序不可调换）\n① 完整标准Markdown表格\n② 换行空一行，附上1~2句中文简洁总结\n\n## 场景示例参考\n用户：id_generator的表结构\n✅正确输出：\n| 字段名 | 类型 | 允许空值 | 键类型 | 默认值 | 额外信息 |\n| ---- | ---- | ---- | ---- | ---- | ---- |\n| id | bigint | NO | PRI | NULL | auto_increment |\n| code | varchar(100) | NO | UNI | NULL |  |\n| value | bigint | NO |  | 1 |  |\n| create_time | datetime | NO |  | CURRENT_TIMESTAMP | DEFAULT_GENERATED |\n| update_time | datetime | NO |  | CURRENT_TIMESTAMP | DEFAULT_GENERATED on update CURRENT_TIMESTAMP |\n\n总结：id_generator表用于管理各类业务全局序列号，依靠code区分业务，value记录当前ID值，自动维护创建、更新时间。\n\n❌禁止输出（你当前出现的错误样式）：\n|字段名|类型||-----|-----||id|bigint||code|varchar... 全部挤在一行、分隔线缺失、连续||乱拼接\n\n## 额外约束\n输出全程优先保证Markdown语法完整性，流式输出时**优先输出完整表头+分隔行**，再逐行推送数据，杜绝表格语法断裂。",
+        "role": "system"
+      },
+      {
+        "content": "有哪些表呢？",
+        "role": "user"
+      },
+      {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "id": "call_1ff440000f3b4ca5b36c8703",
+            "type": "function",
+            "function": {
+              "name": "shell",
+              "arguments": "{\"command\": \"mysql -u root -p12345678 yumi -e \\\"SHOW TABLES\\\"\"}"
+            }
+          }
+        ]
+      },
+      {
+        "content": "\"[stderr] mysql: [Warning] Using a password on the command line interface can be insecure.\\nTables_in_yumi\\nchat_sessions\\ndigital_human\\nGRAPH_CHECKPOINT\\nGRAPH_THREAD\\nid_generator\\nskill\\ntool\"",
+        "role": "tool",
+        "name": "shell",
+        "tool_call_id": "call_1ff440000f3b4ca5b36c8703"
+      },
+      {
+        "content": "当前数据库 **yumi** 中包含以下表：\n\n| 表名 |\n|------|\n| chat_sessions |\n| digital_human |\n| GRAPH_CHECKPOINT |\n| GRAPH_THREAD |\n| id_generator |\n| skill |\n| tool |\n\n共有 **7 张表**，涵盖了聊天会话、数字人、图检查点/线程、ID生成器、技能和工具等模块。如果你想了解某张表的结构或数据，随时告诉我！",
+        "role": "assistant"
+      },
+      {
+        "content": "有哪些表呢？",
+        "role": "user"
+      },
+      {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "id": "call_bb75e4a02d704122bd50ad08",
+            "type": "function",
+            "function": {
+              "name": "shell",
+              "arguments": "{\"command\": \"mysql -u root -p12345678 yumi -e \\\"SHOW TABLES\\\"\"}"
+            }
+          }
+        ]
+      },
+      {
+        "content": "\"[stderr] mysql: [Warning] Using a password on the command line interface can be insecure.\\nTables_in_yumi\\nchat_sessions\\ndigital_human\\nGRAPH_CHECKPOINT\\nGRAPH_THREAD\\nid_generator\\nskill\\ntool\"",
+        "role": "tool",
+        "name": "shell",
+        "tool_call_id": "call_bb75e4a02d704122bd50ad08"
+      },
+      {
+        "content": "当前数据库 **yumi** 中包含以下表：\n\n| 表名 |\n|------|\n| chat_sessions |\n| digital_human |\n| GRAPH_CHECKPOINT |\n| GRAPH_THREAD |\n| id_generator |\n| skill |\n| tool |\n\n共有 **7 张表**，涵盖了聊天会话（chat_sessions）、数字人（digital_human）、图检查点与线程（GRAPH_CHECKPOINT / GRAPH_THREAD）、ID 生成器（id_generator）、技能（skill）和工具（tool）等模块。如果你想查看某张表的具体结构或数据，随时告诉我！",
+        "role": "assistant"
+      },
+      {
+        "content": "有哪些表呢？",
+        "role": "user"
+      },
+      {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "id": "call_70b66f1261614456b1fa3d45",
+            "type": "function",
+            "function": {
+              "name": "shell",
+              "arguments": "{\"command\": \"mysql -u root -p12345678 yumi -e \\\"SHOW TABLES;\\\"\"}"
+            }
+          }
+        ]
+      },
+      {
+        "content": "\"[stderr] mysql: [Warning] Using a password on the command line interface can be insecure.\\nTables_in_yumi\\nchat_sessions\\ndigital_human\\nGRAPH_CHECKPOINT\\nGRAPH_THREAD\\nid_generator\\nskill\\ntool\"",
+        "role": "tool",
+        "name": "shell",
+        "tool_call_id": "call_70b66f1261614456b1fa3d45"
+      },
+      {
+        "content": "| 表名 |\n|------|\n| chat_sessions |\n| digital_human |\n| GRAPH_CHECKPOINT |\n| GRAPH_THREAD |\n| id_generator |\n| skill |\n| tool |\n\n当前 yumi 数据库中共有 7 张表，涵盖了聊天会话、数字人、图检查点与线程、ID 生成器、技能和工具等核心模块。如需查看某张表的结构或数据，请告诉我表名。",
+        "role": "assistant"
+      },
+      {
+        "content": "id_generator的表结构",
+        "role": "user"
+      },
+      {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "id": "call_f1ac06c2fb8d4c18af5ec987",
+            "type": "function",
+            "function": {
+              "name": "shell",
+              "arguments": "{\"command\": \"mysql -u root -p12345678 yumi -e \\\"DESC id_generator;\\\"\"}"
+            }
+          }
+        ]
+      },
+      {
+        "content": "\"[stderr] mysql: [Warning] Using a password on the command line interface can be insecure.\\nField\\tType\\tNull\\tKey\\tDefault\\tExtra\\nid\\tbigint\\tNO\\tPRI\\tNULL\\tauto_increment\\ncode\\tvarchar(100)\\tNO\\tUNI\\tNULL\\t\\nvalue\\tbigint\\tNO\\t\\t1\\t\\ncreate_time\\tdatetime\\tNO\\t\\tCURRENT_TIMESTAMP\\tDEFAULT_GENERATED\\nupdate_time\\tdatetime\\tNO\\t\\tCURRENT_TIMESTAMP\\tDEFAULT_GENERATED on update CURRENT_TIMESTAMP\"",
+        "role": "tool",
+        "name": "shell",
+        "tool_call_id": "call_f1ac06c2fb8d4c18af5ec987"
+      },
+      {
+        "content": "| 字段名 | 类型 | 允许空值 | 键类型 | 默认值 | 额外信息 |\n|------|------|------|------|------|------|\n| id | bigint | NO | PRI | NULL | auto_increment |\n| code | varchar(100) | NO | UNI | NULL | |\n| value | bigint | NO | | 1 | |\n| create_time | datetime | NO | | CURRENT_TIMESTAMP | DEFAULT_GENERATED |\n| update_time | datetime | NO | | CURRENT_TIMESTAMP | DEFAULT_GENERATED on update CURRENT_TIMESTAMP |\n\n**总结：**\n`id_generator` 表主要用于生成和管理各类业务的全局唯一ID（类似序列号机制）。通过唯一的业务编码（`code`）和当前值（`value`）来记录各项ID的增长情况，并自动维护创建与更新时间。",
+        "role": "assistant"
+      },
+      {
+        "content": "digital_human 表结构",
+        "role": "user"
+      }
+    ]
+  },
+  "parameters": {
+    "result_format": "message",
+    "incremental_output": true,
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "description": "Execute a shell command inside a persistent session. Before running a command, confirm the working directory is correct (e.g., inspect with `ls` or `pwd`) and ensure any parent directories exist. Prefer absolute paths and quote paths containing spaces, such as `cd \"/path/with spaces\"`. Chain multiple commands with `&&` or `;` instead of embedding newlines. Avoid unnecessary `cd` usage unless explicitly required so the session remains stable. Outputs may be truncated when they become very large, and long running commands will be terminated once their configured timeout elapses.",
+          "name": "shell",
+          "parameters": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "additionalProperties": false,
+            "type": "object",
+            "properties": {
+              "command": {
+                "type": "string",
+                "description": "The command to execute in the shell."
+              },
+              "restart": {
+                "type": "boolean",
+                "description": "Restart the shell session before executing the command (default: false)."
+              }
+            },
+            "required": [
+              "command"
+            ]
+          }
+        }
+      }
+    ],
+    "vl_enable_image_hw_output": false
+  },
+  "stream": true
+}

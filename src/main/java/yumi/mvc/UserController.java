@@ -40,27 +40,12 @@ public class UserController {
         // 生成会话ID
         String sessionId = UUID.randomUUID().toString();
         sessionStore.put(sessionId, trimmedUsername);
-
-        // 检查用户是否已有会话，没有则创建一个新会话
-        List<SessionEntity> userSessions = sessionService.getSessionsByUserId(trimmedUsername);
-        Long chatSessionId;
-        String chatSessionName;
-        if (userSessions == null || userSessions.isEmpty()) {
-            chatSessionId = sessionService.createSession(trimmedUsername, "默认会话");
-            chatSessionName = "默认会话";
-        } else {
-            SessionEntity firstSession = userSessions.get(0);
-            chatSessionId = firstSession.getId();
-            chatSessionName = firstSession.getName();
-        }
-
+        
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "登录成功");
         response.put("sessionId", sessionId);
         response.put("username", trimmedUsername);
-        response.put("chatSessionId", chatSessionId);
-        response.put("chatSessionName", chatSessionName);
 
         return ResponseEntity.ok(response);
     }

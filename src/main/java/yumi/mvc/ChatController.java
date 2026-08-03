@@ -15,6 +15,7 @@ import yumi.common.YErrorMessageException;
 import yumi.common.YumiContext;
 import yumi.config.StrategyConfig;
 import yumi.entity.DigitalHumanEntity;
+import yumi.entity.SessionEntity;
 import yumi.request.ChatRequest;
 import yumi.service.DigitalHumanService;
 import yumi.service.SessionService;

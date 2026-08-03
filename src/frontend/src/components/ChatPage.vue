@@ -150,9 +150,17 @@ const confirmCreateSession = async () => {
   }
   try {
     const dh = digitalHumans.value.find(d => d.id === dialogDigitalHumanId.value)
-    const sessionName = dh ? `${dh.name}-${Date.now()}` : `新对话-${Date.now()}`
 
-    const response = await fetch(`/api/sessions?userId=${encodeURIComponent(userId.value)}&name=${encodeURIComponent(sessionName)}&digitalHumanId=${dialogDigitalHumanId.value}`, { method: 'POST' })
+    // 调用后端 ID 生成器获取序号
+    const idResponse = await fetch(`/api/id-generator/next?code=${encodeURIComponent(userId.value)}`, { method: 'POST' })
+    const idData = await idResponse.json()
+    const seqNo = idData.success ? idData.value : Date.now()
+
+    const sessionName = dh ? `${dh.name}-${seqNo}` : `新对话-${seqNo}`
+
+    const url = `/api/sessions?userId=${encodeURIComponent(userId.value)}&name=${encodeURIComponent(sessionName)}&digitalHumanId=${dialogDigitalHumanId.value}`
+
+    const response = await fetch(url, { method: 'POST' })
     const data = await response.json()
     if (data.success) {
       sessionId.value = data.sessionId

@@ -58,6 +58,7 @@ public class SessionController {
 
         Map<String, Object> response = new HashMap<>();
         String sessionName = name != null && !name.trim().isEmpty() ? name : "新对话";
+        System.out.println("创建会话 - userId: " + userId + ", name: " + sessionName + ", digitalHumanId: " + digitalHumanId);
         Long sessionId = sessionService.createSession(userId, sessionName, digitalHumanId);
 
         response.put("success", true);
