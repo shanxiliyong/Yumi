@@ -18,7 +18,6 @@ package yumi.tool;
 import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.agent.MessageToolCallResultConverter;
-import com.alibaba.cloud.ai.graph.agent.ReactAgent;
 import com.alibaba.cloud.ai.graph.agent.tools.ToolContextHelper;
 import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
 import com.alibaba.cloud.ai.graph.serializer.AgentInstructionMessage;
@@ -34,7 +33,6 @@ import org.springframework.ai.tool.execution.ToolCallResultConverter;
 import org.springframework.ai.tool.method.MethodToolCallback;
 import org.springframework.ai.tool.support.ToolDefinitions;
 import org.springframework.ai.util.json.JsonParser;
-import org.springframework.ai.util.json.schema.JsonSchemaGenerator;
 
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;

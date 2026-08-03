@@ -20,12 +20,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class BaseYumiAgent implements YumiAgent {
 
     @Autowired
-    private ChatModel chatModel;
-
-    @Autowired
     private AgentBuilderService agentBuilderService;
 
-    private Map<String, ReactAgent> agentMap = new ConcurrentHashMap<>();
 
     @Override
     public String chat(YumiContext context) {
@@ -84,8 +80,5 @@ public class BaseYumiAgent implements YumiAgent {
         return sessionKey != null ? sessionKey : "default";
     }
 
-    public void clearAgent(String sessionKey) {
-        String key = getKey(sessionKey);
-        agentMap.remove(key);
-    }
+
 }

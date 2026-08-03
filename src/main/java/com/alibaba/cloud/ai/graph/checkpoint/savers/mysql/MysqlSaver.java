@@ -15,7 +15,6 @@
  */
 package com.alibaba.cloud.ai.graph.checkpoint.savers.mysql;
 
-import com.alibaba.cloud.ai.graph.StateGraph;
 import com.alibaba.cloud.ai.graph.checkpoint.Checkpoint;
 import com.alibaba.cloud.ai.graph.checkpoint.savers.jdbc.AbstractJdbcCheckpointSaver;
 import com.alibaba.cloud.ai.graph.serializer.StateSerializer;
@@ -33,7 +32,6 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
-import java.util.UUID;
 
 import javax.sql.DataSource;
 
