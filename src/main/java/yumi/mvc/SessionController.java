@@ -38,12 +38,13 @@ public class SessionController {
 
         List<Map<String, Object>> userSessions = new ArrayList<>();
         for (SessionEntity session : sessions) {
+            DigitalHumanEntity digitalHuman = digitalHumanService.getById(session.getDigitalHumanId());
             userSessions.add(Map.of(
                     "sessionId", session.getId(),
                     "name", session.getName(),
                     "digitalHumanId", session.getDigitalHumanId(),
                     "createdAt", session.getCreateTime() == null ? "" : session.getCreateTime().toString(),
-                    "lastMessage", session.getLastMessage() == null ? "暂无消息" : session.getLastMessage()
+                    "requestType", digitalHuman.getStreamingEnabled() == 1 ? "stream" : "send"
             ));
         }
 
