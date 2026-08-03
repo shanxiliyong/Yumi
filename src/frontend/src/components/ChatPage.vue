@@ -29,6 +29,7 @@ const currentSessionName = ref('')
 const digitalHumans = ref([])
 const selectedDigitalHumanId = ref(null)
 const sessions = ref([])
+const currentRequestType = ref('stream') // 当前会话的请求类型，默认流式
 const showSidebar = ref(true)
 const editingSessionId = ref(null)
 const editingSessionName = ref('')
@@ -168,6 +169,9 @@ const confirmCreateSession = async () => {
 
       selectedDigitalHumanId.value = dialogDigitalHumanId.value
 
+      // 根据数字人的 streamingEnabled 设置请求类型
+      currentRequestType.value = dh && dh.streamingEnabled === 1 ? 'stream' : 'send'
+
       currentSessionName.value = sessionName
       messages.value = [{ id: 1, type: 'bot', content: '你好！我是 Yumi 优秘，很高兴为你服务。' }]
       await loadSessions()
@@ -233,6 +237,7 @@ const loadMessagesFromBackend = async (sessionId) => {
 const switchSession = async (session) => {
   sessionId.value = session.sessionId
   currentSessionName.value = session.name
+  currentRequestType.value = session.requestType || 'stream'
   localStorage.setItem('currentSessionId', session.sessionId.toString())
   if (session.digitalHumanId) {
     selectedDigitalHumanId.value = session.digitalHumanId
@@ -262,10 +267,8 @@ const sendMessage = async () => {
   messages.value.push({ id: loadingId, type: 'loading' })
   scrollToBottom()
 
-  let requestType = 'stream'
-
   try {
-    if (requestType === 'stream') {
+    if (currentRequestType.value === 'stream') {
       await sendStreamMessage(userMessage)
     } else {
       await sendNonStreamMessage(userMessage)
@@ -471,7 +474,6 @@ onMounted(() => {
               <span class="session-icon">💬</span>
               <div class="session-info">
                 <span class="session-name">{{ session.name }}</span>
-                <span class="session-preview">{{ session.lastMessage || '暂无消息' }}</span>
               </div>
               <div class="session-actions">
                 <ElButton size="small" class="edit-btn"

@@ -52,8 +52,6 @@ public class SessionController {
             userSessions.add(Map.of(
                     "sessionId", session.getId(),
                     "name", session.getName(),
-                    "digitalHumanId", session.getDigitalHumanId(),
-                    "createdAt", session.getCreateTime() == null ? "" : session.getCreateTime().toString(),
                     "requestType", requestType
             ));
         }
@@ -69,15 +67,21 @@ public class SessionController {
             @RequestParam("userId") String userId,
             @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "digitalHumanId", required = false) Long digitalHumanId) {
-
+        log.info("createSession request: {}, {}, {}", userId, name, digitalHumanId);
         Map<String, Object> response = new HashMap<>();
         String sessionName = name != null && !name.trim().isEmpty() ? name : "新对话";
         System.out.println("创建会话 - userId: " + userId + ", name: " + sessionName + ", digitalHumanId: " + digitalHumanId);
         Long sessionId = sessionService.createSession(userId, sessionName, digitalHumanId);
+        String requestType = "send"; // 默认流式
 
+        DigitalHumanEntity digitalHuman = digitalHumanService.getById(digitalHumanId);
+        if (digitalHuman != null) {
+            requestType = digitalHuman.getStreamingEnabled() == 1 ? "stream" : "send";
+        }
         response.put("success", true);
         response.put("sessionId", sessionId);
         response.put("name", sessionName);
+        response.put("requestType", requestType);
         return ResponseEntity.ok(response);
     }
 
@@ -117,7 +121,7 @@ public class SessionController {
     }
 
     @PostMapping("/messages")
-    public ResponseEntity<Map<String, Object>> getSessionMessages(@RequestBody ChatRequest   request) {
+    public ResponseEntity<Map<String, Object>> getSessionMessages(@RequestBody ChatRequest request) {
         log.info("getSessionMessages request: {}", request.toString());
         Map<String, Object> response = new HashMap<>();
         YumiContext context = new YumiContext();
