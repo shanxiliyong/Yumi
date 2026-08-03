@@ -39,6 +39,7 @@ public class YumiApplication {
     @Bean
     CommandLineRunner commandLineRunner(ChatModel chatModel) {
         return args -> {
+            System.out.println();
             System.out.println("\n=== Yumi 服务已启动 ===");
         };
     }

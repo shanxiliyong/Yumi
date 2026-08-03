@@ -1,13 +1,13 @@
 spring:
   ai:
     zhipuai:
-      api-key: 332718a5d79147dcafcbb378187405b7.Lnvt8tGMuzWuaMyY
+      api-key: ${ZHIPUAI_API_KEY}
       chat:
         options:
           model: GLM-4-Flash
 
     dashscope:
-      api-key: sk-ws-H.EMPPPMI.nRMc.MEQCIG55msTEqe2Q_L-vuBMyNGV7xkllF8EQC2PvXsHr8Vb-AiBxc--4qK-iv5RWrq-ZF9YM1DvAgRun9x44xez6Xnm6Cg # 读取环境变量中的 API Key
+      api-key: ${DASHSCOPE_API_KEY} # 读取环境变量中的 API Key
       chat:
         options:
           model: qwen3.7-max # 指定使用的模型，如 qwen-max, qwen-plus 等
