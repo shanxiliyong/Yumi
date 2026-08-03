@@ -1,7 +1,7 @@
 <script setup>
 import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue'
-import { ElButton, ElInput, ElAvatar, ElMessage, ElSelect, ElOption, ElDrawer, ElPopconfirm, ElIcon, ElDropdown, ElDropdownMenu, ElDropdownItem } from 'element-plus'
-import { Setting, User } from '@element-plus/icons-vue'
+import { ElButton, ElInput, ElAvatar, ElMessage, ElSelect, ElOption, ElDrawer, ElPopconfirm, ElIcon, ElDropdown, ElDropdownMenu, ElDropdownItem, ElDialog } from 'element-plus'
+import { Setting } from '@element-plus/icons-vue'
 import { marked } from 'marked'
 
 marked.setOptions({
@@ -32,6 +32,8 @@ const sessions = ref([])
 const showSidebar = ref(true)
 const editingSessionId = ref(null)
 const editingSessionName = ref('')
+const showCreateDialog = ref(false)
+const dialogDigitalHumanId = ref(null)
 
 const isRecording = ref(false)
 const speechSupported = ref(false)
@@ -136,16 +138,38 @@ const loadSessions = async () => {
   } catch (e) { console.error('加载会话失败:', e) }
 }
 
-const createSession = async () => {
+const openCreateDialog = () => {
+  dialogDigitalHumanId.value = selectedDigitalHumanId.value || (digitalHumans.value.length > 0 ? digitalHumans.value[0].id : null)
+  showCreateDialog.value = true
+}
+
+const confirmCreateSession = async () => {
+  if (!dialogDigitalHumanId.value) {
+    ElMessage.warning('请选择数字人')
+    return
+  }
   try {
+    // 先创建会话获取 sessionId
     const response = await fetch(`/api/sessions?userId=${encodeURIComponent(userId.value)}&name=新会话`, { method: 'POST' })
     const data = await response.json()
     if (data.success) {
       sessionId.value = data.sessionId
-      currentSessionName.value = data.name
       localStorage.setItem('currentSessionId', data.sessionId.toString())
+
+      // 根据选中的数字人生成会话名称
+      const dh = digitalHumans.value.find(d => d.id === dialogDigitalHumanId.value)
+      const sessionName = dh ? `${dh.name}-${data.sessionId}` : `新对话-${data.sessionId}`
+
+      // 更新会话名称
+      await fetch(`/api/sessions/${data.sessionId}?name=${encodeURIComponent(sessionName)}`, { method: 'PUT' })
+
+      // 更新当前选中的数字人
+      selectedDigitalHumanId.value = dialogDigitalHumanId.value
+
+      currentSessionName.value = sessionName
       messages.value = [{ id: 1, type: 'bot', content: '你好！我是 Yumi 优秘，很高兴为你服务。' }]
       await loadSessions()
+      showCreateDialog.value = false
       ElMessage.success('创建会话成功')
     }
   } catch (e) { ElMessage.error('创建会话失败') }
@@ -421,7 +445,7 @@ onMounted(() => {
       </div>
 
       <div class="sidebar-actions" v-if="showSidebar">
-        <ElButton type="primary" class="new-chat-btn" @click="createSession">
+        <ElButton type="primary" class="new-chat-btn" @click="openCreateDialog">
           <span class="btn-icon">+</span>
           <span class="btn-text">新对话</span>
         </ElButton>
@@ -482,15 +506,6 @@ onMounted(() => {
           <ElAvatar class="avatar" :size="36">Y</ElAvatar>
           <div class="header-info">
             <h3>{{ currentSessionName }}</h3>
-          </div>
-        </div>
-
-        <div class="header-center">
-          <div class="select-group">
-            <span class="select-label">数字人:</span>
-            <ElSelect v-model="selectedDigitalHumanId" class="strategy-select" placeholder="选择数字人">
-              <ElOption v-for="dh in digitalHumans" :key="dh.id" :label="dh.name" :value="dh.id" />
-            </ElSelect>
           </div>
         </div>
 
@@ -577,6 +592,22 @@ onMounted(() => {
       </div>
     </div>
   </div>
+
+  <!-- 新增对话弹窗 -->
+  <ElDialog v-model="showCreateDialog" title="新增对话" width="400px" :close-on-click-modal="false">
+    <div class="dialog-content">
+      <div class="dialog-label">选择数字人</div>
+      <ElSelect v-model="dialogDigitalHumanId" class="dialog-select" placeholder="请选择数字人">
+        <ElOption v-for="dh in digitalHumans" :key="dh.id" :label="dh.name" :value="dh.id" />
+      </ElSelect>
+    </div>
+    <template #footer>
+      <div class="dialog-footer">
+        <ElButton @click="showCreateDialog = false">取消</ElButton>
+        <ElButton type="primary" @click="confirmCreateSession">确定</ElButton>
+      </div>
+    </template>
+  </ElDialog>
 </template>
 
 <style scoped>
@@ -829,31 +860,6 @@ onMounted(() => {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-}
-
-.header-center {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.select-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.strategy-select {
-  width: 220px;
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-.strategy-select :deep(.el-input__inner) {
-  color: white;
 }
 
 .header-right {
