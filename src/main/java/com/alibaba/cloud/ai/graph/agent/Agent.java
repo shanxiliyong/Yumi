@@ -45,26 +45,31 @@ import org.springframework.scheduling.Trigger;
 import static com.alibaba.cloud.ai.graph.utils.Messageutils.convertToMessages;
 
 /**
- * Abstract base class for all agents in the graph system. Contains common properties and
- * methods shared by different agent implementations.
+ * LangGraph Agent 抽象基类
+ * <p>
+ * 所有 Agent 实现的父类，包含 Agent 的通用属性和方法。
+ * 提供图的初始化、编译、执行等核心功能。
  */
 public abstract class Agent {
 
-    /** The agent's name. Must be a unique identifier within the graph. */
+    /** Agent 名称，在图中必须是唯一标识符 */
     protected String name;
 
     /**
-     * One line description about the agent's capability. The system can use this for
-     * decision-making when delegating control to different agents.
+     * Agent 能力描述，用于系统在委托控制给不同 Agent 时进行决策
      */
     protected String description;
 
+    /** 图编译配置，用于自定义编译行为 */
     protected CompileConfig compileConfig;
 
+    /** 编译后的图实例，使用 volatile 保证多线程可见性 */
     protected volatile CompiledGraph compiledGraph;
 
+    /** 状态图实例，使用 volatile 保证多线程可见性 */
     protected volatile StateGraph graph;
 
+    /** 并行节点执行器，用于控制并行任务的执行 */
     protected Executor executor;
 
     /**
@@ -113,20 +118,37 @@ public abstract class Agent {
         return this.graph;
     }
 
+    /**
+     * 获取并编译图，返回编译后的 CompiledGraph 实例
+     * <p>
+     * 该方法采用懒加载 + 单例模式，确保图只被编译一次：
+     * 1. 如果 compiledGraph 已存在，直接返回（避免重复编译）
+     * 2. 否则获取 StateGraph 并进行编译
+     * 3. 根据是否有 compileConfig 选择不同的编译方式
+     *
+     * @return 编译后的 CompiledGraph 实例，可用于执行图任务
+     * @throws RuntimeException 如果图编译过程中发生 GraphStateException
+     */
     public synchronized CompiledGraph getAndCompileGraph() {
+        // 如果已编译，直接返回缓存的实例（单例模式）
         if (compiledGraph != null) {
             return compiledGraph;
         }
 
+        // 获取 StateGraph 实例（可能触发 initGraph 抽象方法）
         StateGraph graph = getGraph();
         try {
+            // 根据是否有编译配置，选择不同的编译方式
             if (this.compileConfig == null) {
+                // 使用默认配置编译图
                 this.compiledGraph = graph.compile();
             }
             else {
+                // 使用自定义编译配置编译图
                 this.compiledGraph = graph.compile(this.compileConfig);
             }
         } catch (GraphStateException e) {
+            // 图状态异常，包装为运行时异常抛出
             throw new RuntimeException(e);
         }
         return this.compiledGraph;
