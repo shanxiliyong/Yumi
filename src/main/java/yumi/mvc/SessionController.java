@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import yumi.common.JackJsonUtil;
 import yumi.common.YumiContext;
 import yumi.entity.DigitalHumanEntity;
 import yumi.entity.SessionEntity;
@@ -38,18 +39,28 @@ public class SessionController {
 
         List<Map<String, Object>> userSessions = new ArrayList<>();
         for (SessionEntity session : sessions) {
-            DigitalHumanEntity digitalHuman = digitalHumanService.getById(session.getDigitalHumanId());
+            DigitalHumanEntity digitalHuman = null;
+            String requestType = "stream"; // 默认流式
+
+            if (session.getDigitalHumanId() != null) {
+                digitalHuman = digitalHumanService.getById(session.getDigitalHumanId());
+                if (digitalHuman != null) {
+                    requestType = digitalHuman.getStreamingEnabled() == 1 ? "stream" : "send";
+                }
+            }
+
             userSessions.add(Map.of(
                     "sessionId", session.getId(),
                     "name", session.getName(),
                     "digitalHumanId", session.getDigitalHumanId(),
                     "createdAt", session.getCreateTime() == null ? "" : session.getCreateTime().toString(),
-                    "requestType", digitalHuman.getStreamingEnabled() == 1 ? "stream" : "send"
+                    "requestType", requestType
             ));
         }
 
         response.put("success", true);
         response.put("data", userSessions);
+        log.info("获取会话列表 - userId: {}, sessions: {}", userId, JackJsonUtil.toJsonStr(userSessions));
         return ResponseEntity.ok(response);
     }
 
