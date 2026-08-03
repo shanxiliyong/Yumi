@@ -1,5 +1,6 @@
 package yumi.mvc;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/sessions")
 public class SessionController {
@@ -104,13 +106,13 @@ public class SessionController {
 
     @PostMapping("/messages")
     public ResponseEntity<Map<String, Object>> getSessionMessages(@RequestBody ChatRequest   request) {
+        log.info("getSessionMessages request: {}", request.toString());
         Map<String, Object> response = new HashMap<>();
-
         YumiContext context = new YumiContext();
         context.setRequest(request);
-
-        if (request.getDigitalHumanId() != null) {
-            DigitalHumanEntity dh = digitalHumanService.getById(request.getDigitalHumanId());
+        SessionEntity session = sessionService.getSession(request.getSessionId());
+        if (session != null && session.getDigitalHumanId() != null) {
+            DigitalHumanEntity dh = digitalHumanService.getById(session.getDigitalHumanId());
             context.setDh(dh);
         }
         String threadId = context.getSessionKey();

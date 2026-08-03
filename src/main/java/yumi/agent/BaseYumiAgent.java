@@ -51,7 +51,7 @@ public class BaseYumiAgent implements YumiAgent {
         try {
             ReactAgent agent = agentBuilderService.buildAgent(context);
             RunnableConfig config = RunnableConfig.builder()
-                    .threadId(this.getClass().getSimpleName() + "_" + context.getSessionKey())
+                    .threadId(context.getSessionKey())
                     .build();
 
             return agent.stream(context.getRequest().getMessage(), config)

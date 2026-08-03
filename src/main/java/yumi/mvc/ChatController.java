@@ -47,6 +47,7 @@ public class ChatController {
 
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE + "; charset=utf-8")
     public Flux<String> chatStream(@RequestBody ChatRequest request) {
+        log.info("chatStream request: {}", request.toString());
         String message = request.getMessage();
         try {
             paramCheck(request);
@@ -86,6 +87,7 @@ public class ChatController {
 
     @PostMapping("/send")
     public ResponseEntity<Map<String, Object>> chat(@RequestBody ChatRequest request) {
+        log.info("chat request: {}", request.toString());
         Map<String, Object> response = new HashMap<>();
 
         try {

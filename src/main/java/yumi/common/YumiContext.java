@@ -16,7 +16,7 @@ public class YumiContext {
 
 
     public String getSessionKey() {
-        String sessionKey = dh.getCode()+"-"+request.getUserId() + "-" + request.getSessionId();
+        String sessionKey = request.getUserId() + "-" +dh.getCode()+"-"+ request.getSessionId();
         return sessionKey;
     }
 
