@@ -27,12 +27,26 @@ Yumi（优秘）是一个基于 **Spring AI Alibaba** 框架开发的企业级�
 - 💬 **会话管理** - 完整的会话生命周期管理，支持多会话切换
 - 🧵 **长记忆** - 基于 JDBC 的对话记忆存储，支持上下文自动压缩
 - 🎭 **数字人** - 支持多种数字人角色，个性化提示词配置
-- 🔄 **流式输出** - 支持 SSE 流式响应，实时展示 AI 回复
+-  **流式输出** - 支持 SSE 流式响应，实时展示 AI 回复
 -  **性能监控** - 各阶段埋点耗时统计，Token 消耗追踪
 
 ---
 
-## ️ 系统架构
+##  功能概览
+
+| 功能模块 | 说明 | 详细文档 |
+|---------|------|---------|
+| 功能概览 | 登录、数字人配置、对话交互、管理后台 | [功能概览](docs/features/L0_功能概览.md) |
+| 上下文管理 | 会话隔离、断点续传、智能压缩 | [上下文管理](docs/features/L1_上下文管理.md) |
+| 工具管理 | 工具注册、权限确认、RPC 调用 | [工具管理](docs/features/L02_工具管理.md) |
+| 技能管理 | Markdown 技能定义、租户隔离 | [技能管理](docs/features/L03_技能管理.md) |
+| 多 Agent 管理 | 父子 Agent 层级协作、任务调度 | [多 Agent 管理](docs/features/L04_多Agent管理.md) |
+
+> 详细功能说明请查看 [功能文档](docs/features/)
+
+---
+
+## 🏗️ 系统架构
 
 ### 整体架构图
 
@@ -308,22 +322,6 @@ npm run dev
 
 ---
 
-##  功能概览
-
-| 功能模块 | 说明 | 详细文档 |
-|---------|------|---------|
-| 智能对话 | 流式/非流式对话、多会话管理、上下文管理 | [对话功能](docs/wiki/chat.md) |
-| Agent 管理 | 父子 Agent 层级协作、技能工具关联 | [Agent 管理](docs/wiki/agent.md) |
-| 工具系统 | 工具注册、权限确认、RPC 泛化调用 | [工具系统](docs/wiki/tool.md) |
-| 技能管理 | Markdown 技能定义、租户隔离 | [技能管理](docs/wiki/skill.md) |
-| 数字人 | 角色管理、层级关系、提示词配置 | [数字人](docs/wiki/digital-human.md) |
-| 会话管理 | 会话生命周期、断点续传 | [会话管理](docs/wiki/session.md) |
-| 上下文压缩 | 自动压缩长对话、减少 Token 消耗 | [上下文压缩](docs/wiki/context.md) |
-
-> 详细功能说明请查看 [Wiki 文档](docs/wiki/)
-
----
-
 ## 📁 项目结构
 
 ```
@@ -367,8 +365,6 @@ Yumi/
 │   │   │       └── RpcToolConfig.java      # RPC 配置
 │   │   └── resources/
 │   │       ├── application.yml     # 应用配置
-│   │       ├── config/
-│   │       │   └── strategies.json # 策略配置
 │   │       ├── mapper/             # MyBatis XML
 │   │       ── schema/
 │   │           └── init.sql        # 数据库初始化脚本
@@ -441,49 +437,6 @@ GET    /api/digital-human/children  # 子数字人列表
 
 ---
 
-## ️ 开发指南
-
-### 添加新工具
-
-1. 在数据库 `tool` 表中添加工具配置
-2. 实现工具执行逻辑
-3. 通过 `/api/tool` 接口注册工具
-
-### 添加新技能
-
-1. 创建 Skill 实体
-2. 编写 Markdown 格式的技能描述
-3. 通过 `/api/skill` 接口注册技能
-4. 将技能关联到 Agent
-
-### 自定义 Hook
-
-继承相应的 Hook 类，实现自定义逻辑：
-
-```java
-public class MyCustomHook extends MessagesAgentHook {
-    @Override
-    public void beforeAgent(...) {
-        // Agent 执行前的逻辑
-    }
-    
-    @Override
-    public void afterAgent(...) {
-        // Agent 执行后的逻辑
-    }
-}
-```
-
-### 添加子 Agent
-
-1. 在 `digital_human` 表中创建子 Agent 记录
-2. 设置 `parent_code` 为父 Agent 的 code
-3. 设置 `agent_type = 'child'`
-4. 设置 `multi_agent_enabled = 1`
-5. 配置子 Agent 的技能和工具
-
----
-
 ##  配置说明
 
 ### application.yml 主要配置项
@@ -511,19 +464,6 @@ spring:
   datasource:                         # 数据库配置
   data:
     redis:                            # Redis 配置
-```
-
-### strategies.json 策略配置
-
-```json
-{
-  "id": "strategy-multi-stream",
-  "name": "多智能体协作—流式",
-  "description": "基于工具的多智能体协作模式",
-  "requestType": "stream",
-  "beanName": "multiReactAgent",
-  "instruction": "系统提示词..."
-}
 ```
 
 ---
