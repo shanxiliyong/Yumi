@@ -586,6 +586,34 @@ public class ReactAgent extends BaseAgent {
         }
     }
 
+    /**
+     * 设置 Hook 之间的边连接关系
+     * <p>
+     * 该方法负责建立图中所有 Hook 节点之间的连接关系，包括：
+     * 1. BEFORE_AGENT Hook 链：按顺序连接，最后一个连接到循环入口
+     * 2. BEFORE_MODEL Hook 链：按顺序连接，最后一个连接到 Agent Model 节点
+     * 3. AFTER_MODEL Hook 链：逆序连接（从后往前），第一个连接到退出节点
+     * 4. AFTER_AGENT Hook 链：逆序连接（从后往前），第一个连接到退出节点
+     * 5. 工具路由：如果有工具，设置工具调用和返回的路由逻辑
+     * <p>
+     * Hook 执行顺序：
+     * <pre>
+     * START → beforeAgentHooks → loopEntryNode → beforeModelHooks → AGENT_MODEL
+     *        → afterModelHooks → (tool routing) → afterAgentHooks → END
+     * </pre>
+     *
+     * @param graph 状态图实例
+     * @param beforeAgentHooks BEFORE_AGENT 类型的 Hook 列表
+     * @param afterAgentHooks AFTER_AGENT 类型的 Hook 列表
+     * @param beforeModelHooks BEFORE_MODEL 类型的 Hook 列表
+     * @param afterModelHooks AFTER_MODEL 类型的 Hook 列表
+     * @param entryNode 入口节点名称
+     * @param loopEntryNode 循环入口节点名称
+     * @param loopExitNode 循环出口节点名称
+     * @param exitNode 退出节点名称
+     * @param agentInstance ReactAgent 实例，用于获取工具配置等信息
+     * @throws GraphStateException 如果图状态异常
+     */
     private static void setupHookEdges(
             StateGraph graph,
             List<Hook> beforeAgentHooks,
@@ -598,30 +626,30 @@ public class ReactAgent extends BaseAgent {
             String exitNode,
             ReactAgent agentInstance) throws GraphStateException {
 
-        // Chain before_agent hook
+        // 连接 BEFORE_AGENT Hook 链：按顺序连接，最后一个连接到循环入口节点
         chainHook(graph, beforeAgentHooks, ".before", loopEntryNode, loopEntryNode, exitNode);
 
-        // Chain before_model hook
+        // 连接 BEFORE_MODEL Hook 链：按顺序连接，最后一个连接到 Agent Model 节点
         chainHook(graph, beforeModelHooks, ".beforeModel", AGENT_MODEL_NAME, loopEntryNode, exitNode);
 
-        // Chain after_model hook (reverse order)
+        // 连接 AFTER_MODEL Hook 链：逆序连接（从后往前），确保执行顺序正确
         if (!afterModelHooks.isEmpty()) {
             chainModelHookReverse(graph, afterModelHooks, ".afterModel", AGENT_MODEL_NAME, loopEntryNode, exitNode);
         }
 
-        // Chain after_agent hook (reverse order)
+        // 连接 AFTER_AGENT Hook 链：逆序连接（从后往前），确保执行顺序正确
         if (!afterAgentHooks.isEmpty()) {
             chainAgentHookReverse(graph, afterAgentHooks, ".after", exitNode, loopEntryNode, exitNode);
         }
 
-        // Add tool routing if tools exist
+        // 如果存在工具，设置工具路由逻辑（包括工具调用和返回的路由）
         if (agentInstance.hasTools) {
             setupToolRouting(graph, loopExitNode, loopEntryNode, exitNode, agentInstance);
         } else if (!loopExitNode.equals(AGENT_MODEL_NAME)) {
-            // No tools but have after_model - connect to exit
+            // 没有工具但有 AFTER_MODEL Hook，连接到退出节点
             addHookEdge(graph, loopExitNode, exitNode, loopEntryNode, exitNode, afterModelHooks.get(afterModelHooks.size() - 1).canJumpTo());
         } else {
-            // No tools and no after_model - direct to exit
+            // 没有工具也没有 AFTER_MODEL Hook，直接连接到退出节点
             graph.addEdge(loopExitNode, exitNode);
         }
     }
@@ -674,6 +702,27 @@ public class ReactAgent extends BaseAgent {
         }
     }
 
+    /**
+     * 按顺序连接 Hook 节点链
+     * <p>
+     * 该方法将 Hook 列表按顺序连接成一条链，每个 Hook 节点连接到下一个 Hook 节点，
+     * 最后一个 Hook 节点连接到指定的默认下一个节点。
+     * <p>
+     * 连接逻辑：
+     * <pre>
+     * hook[0] → hook[1] → hook[2] → ... → hook[n-1] → defaultNext
+     * </pre>
+     * <p>
+     * 每个 Hook 节点还支持跳转到模型节点或结束节点（通过 canJumpTo 配置）。
+     *
+     * @param graph 状态图实例
+     * @param hooks Hook 列表，按执行顺序排列
+     * @param nameSuffix Hook 节点名称后缀（如 ".before"、".beforeModel"）
+     * @param defaultNext 默认下一个节点名称（最后一个 Hook 连接到的目标）
+     * @param modelDestination 模型节点目标名称（用于跳转）
+     * @param endDestination 结束节点目标名称（用于跳转）
+     * @throws GraphStateException 如果图状态异常
+     */
     private static void chainHook(
             StateGraph graph,
             List<Hook> hooks,
@@ -682,6 +731,7 @@ public class ReactAgent extends BaseAgent {
             String modelDestination,
             String endDestination) throws GraphStateException {
 
+        // 遍历 Hook 列表，将每个 Hook 连接到下一个 Hook
         for (int i = 0; i < hooks.size() - 1; i++) {
             Hook m1 = hooks.get(i);
             Hook m2 = hooks.get(i + 1);
@@ -692,6 +742,7 @@ public class ReactAgent extends BaseAgent {
                     m1.canJumpTo());
         }
 
+        // 将最后一个 Hook 连接到默认下一个节点
         if (!hooks.isEmpty()) {
             Hook last = hooks.get(hooks.size() - 1);
             addHookEdge(graph,
