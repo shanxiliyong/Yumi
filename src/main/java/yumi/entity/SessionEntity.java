@@ -19,6 +19,9 @@ public class SessionEntity {
     @TableField("name")
     private String name;
     
+    @TableField("digital_human_id")
+    private Long digitalHumanId;
+    
     @TableField("last_message")
     private String lastMessage;
     
@@ -59,6 +62,14 @@ public class SessionEntity {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public Long getDigitalHumanId() {
+        return digitalHumanId;
+    }
+
+    public void setDigitalHumanId(Long digitalHumanId) {
+        this.digitalHumanId = digitalHumanId;
     }
 
     public String getLastMessage() {

@@ -149,21 +149,15 @@ const confirmCreateSession = async () => {
     return
   }
   try {
-    // 先创建会话获取 sessionId
-    const response = await fetch(`/api/sessions?userId=${encodeURIComponent(userId.value)}&name=新会话`, { method: 'POST' })
+    const dh = digitalHumans.value.find(d => d.id === dialogDigitalHumanId.value)
+    const sessionName = dh ? `${dh.name}-${Date.now()}` : `新对话-${Date.now()}`
+
+    const response = await fetch(`/api/sessions?userId=${encodeURIComponent(userId.value)}&name=${encodeURIComponent(sessionName)}&digitalHumanId=${dialogDigitalHumanId.value}`, { method: 'POST' })
     const data = await response.json()
     if (data.success) {
       sessionId.value = data.sessionId
       localStorage.setItem('currentSessionId', data.sessionId.toString())
 
-      // 根据选中的数字人生成会话名称
-      const dh = digitalHumans.value.find(d => d.id === dialogDigitalHumanId.value)
-      const sessionName = dh ? `${dh.name}-${data.sessionId}` : `新对话-${data.sessionId}`
-
-      // 更新会话名称
-      await fetch(`/api/sessions/${data.sessionId}?name=${encodeURIComponent(sessionName)}`, { method: 'PUT' })
-
-      // 更新当前选中的数字人
       selectedDigitalHumanId.value = dialogDigitalHumanId.value
 
       currentSessionName.value = sessionName
@@ -1287,5 +1281,27 @@ onMounted(() => {
   50% {
     opacity: 0.3;
   }
+}
+
+/* 新增对话弹窗样式 */
+.dialog-content {
+  padding: 8px 0;
+}
+
+.dialog-label {
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.dialog-select {
+  width: 100%;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 </style>

@@ -17,8 +17,9 @@ public class SessionService {
     private SessionMapper sessionMapper;
 
     @Transactional
-    public Long createSession(String userId, String name) {
+    public Long createSession(String userId, String name, Long digitalHumanId) {
         SessionEntity session = new SessionEntity(userId, name);
+        session.setDigitalHumanId(digitalHumanId);
         sessionMapper.insert(session);
         return session.getId();
     }

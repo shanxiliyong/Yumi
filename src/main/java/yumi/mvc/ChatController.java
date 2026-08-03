@@ -55,8 +55,11 @@ public class ChatController {
 
         YumiContext context = new YumiContext();
         context.setRequest(request);
-        DigitalHumanEntity dh = digitalHumanService.getById(request.getDigitalHumanId());
-        context.setDh(dh);
+        SessionEntity session = sessionService.getSession(request.getSessionId());
+        if (session != null && session.getDigitalHumanId() != null) {
+            DigitalHumanEntity dh = digitalHumanService.getById(session.getDigitalHumanId());
+            context.setDh(dh);
+        }
         return yumiAgent.chatStream(context)
                 .doOnComplete(() -> {
                     log.info("doOnComplete sessionKey: {} message: {}", context.getSessionKey(), message);
@@ -78,9 +81,6 @@ public class ChatController {
         if (StringUtils.isEmpty(request.getMessage())) {
             throw new YErrorMessageException("[错误] 消息不能为空");
         }
-        if (request.getDigitalHumanId() == null) {
-            throw new YErrorMessageException("[错误] 数字人ID不能为空");
-        }
     }
 
     @PostMapping("/send")
@@ -99,8 +99,9 @@ public class ChatController {
         YumiContext context = new YumiContext();
         context.setRequest(request);
 
-        if (request.getDigitalHumanId() != null) {
-            DigitalHumanEntity dh = digitalHumanService.getById(request.getDigitalHumanId());
+        SessionEntity session = sessionService.getSession(request.getSessionId());
+        if (session != null && session.getDigitalHumanId() != null) {
+            DigitalHumanEntity dh = digitalHumanService.getById(session.getDigitalHumanId());
             context.setDh(dh);
         }
 

@@ -52,11 +52,12 @@ public class SessionController {
     @PostMapping
     public ResponseEntity<Map<String, Object>> createSession(
             @RequestParam("userId") String userId,
-            @RequestParam(value = "name", required = false) String name) {
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "digitalHumanId", required = false) Long digitalHumanId) {
 
         Map<String, Object> response = new HashMap<>();
         String sessionName = name != null && !name.trim().isEmpty() ? name : "新对话";
-        Long sessionId = sessionService.createSession(userId, sessionName);
+        Long sessionId = sessionService.createSession(userId, sessionName, digitalHumanId);
 
         response.put("success", true);
         response.put("sessionId", sessionId);
