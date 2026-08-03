@@ -113,6 +113,7 @@ const handleMenuSelect = (index) => {
           <ElDropdown class="user-dropdown" trigger="click">
             <div class="user-trigger">
               <div class="user-avatar">{{ props.username.charAt(0).toUpperCase() }}</div>
+              <span class="user-name">{{ props.username }}</span>
               <span class="dropdown-arrow"></span>
             </div>
             <template #dropdown>
