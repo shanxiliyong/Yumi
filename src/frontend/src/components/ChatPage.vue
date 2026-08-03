@@ -504,12 +504,7 @@ onMounted(() => {
             </div>
             <template #dropdown>
               <ElDropdownMenu>
-                <ElDropdownItem disabled>
-                  <div class="dropdown-user-info">
-                    <div class="dropdown-username">{{ props.username }}</div>
-                  </div>
-                </ElDropdownItem>
-                <ElDropdownItem divided @click="handleLogout" class="logout-item">
+                <ElDropdownItem @click="handleLogout" class="logout-item">
                   <ElIcon><Setting /></ElIcon>
                   <span>退出登录</span>
                 </ElDropdownItem>
@@ -875,6 +870,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
+  min-width: 100px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   background: rgba(255, 255, 255, 0.15);
@@ -915,20 +911,13 @@ onMounted(() => {
   font-size: 14px;
 }
 
-:deep(.el-dropdown-menu__item.is-disabled) {
-  color: #1e293b;
-  cursor: default;
-  background: transparent;
+.logout-item {
+  color: #ef4444;
 }
 
-.dropdown-user-info {
-  padding: 4px 0;
-}
-
-.dropdown-username {
-  font-weight: 600;
-  color: #1e293b;
-  font-size: 14px;
+.logout-item:hover {
+  color: #ef4444;
+  background: #fef2f2;
 }
 
 .agent-admin-btn {

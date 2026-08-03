@@ -118,12 +118,7 @@ const handleMenuSelect = (index) => {
             </div>
             <template #dropdown>
               <ElDropdownMenu>
-                <ElDropdownItem disabled>
-                  <div class="dropdown-user-info">
-                    <div class="dropdown-username">{{ props.username }}</div>
-                  </div>
-                </ElDropdownItem>
-                <ElDropdownItem divided @click="handleLogout" class="logout-item">
+                <ElDropdownItem @click="handleLogout" class="logout-item">
                   <ElIcon><Setting /></ElIcon>
                   <span>退出登录</span>
                 </ElDropdownItem>
@@ -336,6 +331,7 @@ const handleMenuSelect = (index) => {
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
+  min-width: 100px;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
   background: white;
