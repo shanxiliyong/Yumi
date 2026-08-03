@@ -8,44 +8,175 @@
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://www.oracle.com/java/)
 [![Vue](https://img.shields.io/badge/Vue-3-green.svg)](https://vuejs.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Spring AI Alibaba](https://img.shields.io/badge/Spring%20AI%20Alibaba-1.1.2-blue.svg)](https://github.com/alibaba/spring-ai-alibaba)
 
 </div>
 
 ---
 
-##  项目简介
+## 📖 项目简介
 
-Yumi（优秘）是一个基于 **Spring AI Alibaba** 框架开发的多 Agent 智能对话平台，支持多种大语言模型（智谱 AI、通义千问等），提供完整的 Agent 管理、工具注册、技能管理、会话管理等功能。
+Yumi（优秘）是一个基于 **Spring AI Alibaba** 框架开发的企业级多 Agent 智能对话平台，支持多种大语言模型（智谱 AI、通义千问等），提供完整的 Agent 管理、工具注册、技能管理、会话管理等功能。
 
-### 核心特性
+### ✨ 核心特性
 
-- 🤖 **多模型支持** - 支持智谱 AI（GLM）、通义千问（Qwen）等多种大模型
-- 🧠 **多 Agent 架构** - 支持创建和管理多个 AI Agent，每个 Agent 可配置不同的技能和工具
-- 🔧 **工具系统** - 支持工具注册、权限管理、并发执行，可扩展 RPC 调用
-- 📚 **技能管理** - 支持 Markdown 格式的技能定义，按租户加载
+- 🤖 **多模型支持** - 支持智谱 AI（GLM）、通义千问（Qwen）等多种大模型，可灵活切换
+- 🧠 **多 Agent 架构** - 支持父子 Agent 层级协作，每个 Agent 可配置不同的技能和工具
+- 🔧 **工具系统** - 支持工具注册、权限管理、并发执行，可扩展 RPC 泛化调用
+- 📚 **技能管理** - 支持 Markdown 格式的技能定义，按租户隔离加载
 - 💬 **会话管理** - 完整的会话生命周期管理，支持多会话切换
-- 🧵 **长记忆** - 基于 JDBC 的对话记忆存储，支持上下文压缩
-- 🎭 **数字人** - 支持 SQL 数字人等多种数字人角色
+- 🧵 **长记忆** - 基于 JDBC 的对话记忆存储，支持上下文自动压缩
+- 🎭 **数字人** - 支持多种数字人角色，个性化提示词配置
 - 🔄 **流式输出** - 支持 SSE 流式响应，实时展示 AI 回复
 -  **性能监控** - 各阶段埋点耗时统计，Token 消耗追踪
 
 ---
 
-## 🏗️ 技术栈
+## ️ 系统架构
+
+### 整体架构图
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        前端层 (Vue 3)                            │
+│  ┌──────────┐  ┌──────────  ┌──────────┐  ┌──────────┐        │
+│  │ 对话界面  │  │ 管理后台  │  │ Dashboard│  │ 工具管理  │        │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  ────┬─────┘        │
+───────┼─────────────┼─────────────┼─────────────┼───────────────┘
+        │             │             │             │
+        └─────────────┴─────────────┴─────────────
+                      │ HTTP / SSE
+┌─────────────────────┼───────────────────────────────────────────┐
+│                     ▼                                           │
+│                    后端层 (Spring Boot 3.5.4)                    │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                    Controller 层                          │   │
+│  │  ChatController │ SessionController │ ToolController     │   │
+│  └────────────────────────┬─────────────────────────────────┘   │
+│                           │                                     │
+│  ┌────────────────────────▼─────────────────────────────────┐   │
+│  │                    Service 层                             │   │
+│  │  ChatService │ SessionService │ ToolService │ SkillService│   │
+│  └────────────────────────┬─────────────────────────────────┘   │
+│                           │                                     │
+│  ┌────────────────────────▼─────────────────────────────────   │
+│  │                  Agent 核心层                             │   │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐       │   │
+│  │  │ BaseYumiAgent│ │AgentBuilder │ │ YumiContext │       │   │
+│  │  └──────┬──────┘  └──────┬──────┘  └──────┬──────       │   │
+│  │         │                │                │               │   │
+│  │  ┌──────▼────────────────▼────────────────▼──────┐        │   │
+│  │  │              ReactAgent (LangGraph)            │        │   │
+│  │  │  ┌─────────┐ ┌─────────┐ ┌─────────────────┐  │        │   │
+│  │  │  │  Tools  │ │ Skills  │ │  Sub-Agents     │  │        │   │
+│  │  │  └─────────┘ └─────────┘ └─────────────────┘  │        │   │
+│  │  └────────────────────────────────────────────────        │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                           │                                     │
+│  ┌────────────────────────▼─────────────────────────────────   │
+│  │                    Hook 钩子层                            │   │
+│  │  LogAgentHook │ LogModelHook │ SummarizationHook         │   │
+│  │  ShellToolAgentHook │ SkillsAgentHook                    │   │
+│  └──────────────────────────────────────────────────────────┘   │
+─────────────────────────────────────────────────────────────────┘
+                      │
+        ┌─────────────┼─────────────┐
+        ▼             ▼             ▼
+┌──────────────┐ ┌──────────┐ ┌──────────┐
+│    MySQL     │ │  Redis   │ │  LLM API │
+│  8.0+        │ │ +Redisson│ │ 智谱/通义 │
+└──────────────┘ └──────────┘ └──────────┘
+```
+
+### 多 Agent 协作架构
+
+```
+                    ┌─────────────────────┐
+                    │     父 Agent        │
+                    │  (任务调度/协调者)   │
+                    └──────────┬──────────┘
+                               │
+              ┌────────────────┼────────────────┐
+              │                │                │
+    ┌─────────▼────────┐ ┌────▼─────┐ ┌───────▼──────
+    │   子 Agent A      │ │ 子 Agent B│ │  子 Agent C   │
+    │  (数据库查询)     │ │(写作工具) │ │ (翻译工具)   │
+    └──────────────────┘ └────────── └──────────────┘
+              │                │                │
+    ┌─────────▼────────┐ ┌────▼─────┐ ┌───────▼──────┐
+    │   Tools:         │ │ Tools:   │ │ Tools:       │
+    │ - execute_sql    │ │ - writer │ │ - translator │
+    │ - show_tables    │ │          │ │              │
+    └──────────────────┘ └──────────┘ └──────────────┘
+```
+
+### 数据流转图
+
+```
+用户输入
+  │
+  ▼
+┌─────────────┐    ┌──────────────┐    ┌──────────────┐
+│ ChatController│──▶│ YumiContext  │──▶│ AgentBuilder │
+└─────────────┘    ──────────────┘    └─────────────┘
+                                              │
+                                    ┌─────────▼──────────┐
+                                    │   ReactAgent       │
+                                    │  (LangGraph 图执行) │
+                                    └─────────┬──────────┘
+                                              │
+                        ┌─────────────────────┼─────────────────────┐
+                        │                     │                     │
+                  ┌─────▼─────┐        ┌──────▼──────┐      ┌───────▼───────┐
+                  │  LLM 推理  │        │  Tool 调用  │      │  Skill 加载   │
+                  └─────┬─────┘        └────────────┘      └──────────────┘
+                        │                     │                     │
+                        └─────────────────────┼─────────────────────┘
+                                              │
+                                    ┌─────────▼──────────┐
+                                    │   Hook 处理        │
+                                    │ - 日志记录         │
+                                    │ - 上下文压缩       │
+                                    │ - 权限校验         │
+                                    └─────────┬──────────┘
+                                              │
+                                    ┌─────────▼──────────┐
+                                    │   SSE 流式返回     │
+                                    ─────────┬──────────┘
+                                              │
+                                              ▼
+                                          前端展示
+```
+
+---
+
+## 🛠️ 技术栈
 
 ### 后端
-- **框架**: Spring Boot 3.5.4
-- **AI 框架**: Spring AI Alibaba 1.1.2
-- **语言**: Java 21
-- **数据库**: MySQL 8.0
-- **缓存**: Redis + Redisson
-- **ORM**: MyBatis-Plus 3.5.5 + Spring Data JPA
-- **工具库**: Lombok, Commons-Lang3, Commons-IO
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| Spring Boot | 3.5.4 | 应用框架 |
+| Spring AI Alibaba | 1.1.2 | AI Agent 框架 |
+| Java | 21 | 开发语言 |
+| MySQL | 8.0+ | 数据存储 |
+| Redis + Redisson | 6.0+ | 缓存与分布式锁 |
+| MyBatis-Plus | 3.5.5 | ORM 框架 |
+| Spring Data JPA | - | 数据访问 |
+| Lombok | - | 代码简化 |
 
 ### 前端
-- **框架**: Vue 3 + Vite
-- **UI 组件**: Element Plus
-- **Markdown 渲染**: Marked
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| Vue 3 | - | 前端框架 |
+| Vite | - | 构建工具 |
+| Element Plus | - | UI 组件库 |
+| Marked | - | Markdown 渲染 |
+
+### AI 模型
+| 模型 | 提供商 | 用途 |
+|------|--------|------|
+| GLM-4-Flash | 智谱 AI | 通用对话 |
+| qwen3.7-max | 通义千问 | 复杂任务处理 |
 
 ---
 
@@ -98,9 +229,7 @@ $env:DASHSCOPE_API_KEY="你的通义千问_API_Key"
 
 ### 3. 初始化数据库
 
-#### 方式一：使用初始化脚本（推荐）
-
-项目提供了完整的数据库初始化脚本，包含所有表结构和初始数据：
+#### 执行初始化脚本
 
 ```bash
 # 使用 MySQL 命令行执行初始化脚本
@@ -113,24 +242,14 @@ mysql -u root -p < src/main/resources/schema/init.sql
 source /path/to/Yumi/src/main/resources/schema/init.sql;
 ```
 
-#### 方式二：手动创建
-
-如果需要使用自定义配置，可以手动创建数据库：
-
-```sql
-CREATE DATABASE yumi DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-然后执行初始化脚本中的建表语句。
-
-#### 初始化脚本包含的表
+#### 数据库表结构
 
 | 表名 | 说明 | 用途 |
 |------|------|------|
-| `chat_sessions` | 会话表 | 存储用户会话信息 |
+| `chat_sessions` | 会话表 | 存储用户会话信息，关联数字人ID |
 | `GRAPH_THREAD` | 线程表 | Agent 图执行线程管理 |
 | `GRAPH_CHECKPOINT` | 检查点表 | Agent 执行状态断点保存 |
-| `digital_human` | 数字人/Agent表 | 数字人和 Agent 统一管理 |
+| `digital_human` | 数字人/Agent表 | 数字人和 Agent 统一管理，支持父子层级 |
 | `skill` | 技能表 | 技能定义和管理 |
 | `tool` | 工具表 | 工具注册和配置 |
 | `rpc_interface` | RPC接口表 | RPC 接口定义 |
@@ -156,7 +275,7 @@ spring:
     redis:
       host: localhost
       port: 6379
-      password: your_redis_password  # 如果没有密码则留空
+      password: your_redis_password
 ```
 
 ### 4. 启动后端
@@ -197,18 +316,21 @@ npm run dev
 - 支持流式（SSE）和非流式对话
 - 多会话管理，可同时维护多个对话
 - 对话历史记录和上下文管理
+- 会话名称自动生成（数字人名称-序号）
 
 #### 2. Agent 管理
 - 创建和配置多个 AI Agent
-- 为 Agent 关联不同的技能（Skill）
+- 父子 Agent 层级协作架构
+- 为 Agent 关联不同的技能（Skill）和工具（Tool）
 - 自定义系统提示词
-- 支持人工审核流程
+- 支持多 Agent 并发执行
 
 #### 3. 工具系统（Tool）
-- 工具注册和管理
+- 工具注册和管理（system/rpc 类型）
 - 工具执行前权限确认
 - 支持并发执行多个工具
 - 可扩展 RPC 泛化调用
+- 内置工具：Web 搜索、Shell 执行、上下文压缩
 
 #### 4. 技能管理（Skill）
 - Markdown 格式技能定义
@@ -217,14 +339,16 @@ npm run dev
 - 底层调用 Skill 运营 Agent 创建
 
 #### 5. 数字人
-- SQL 数字人角色管理
-- 多数字人切换
+- 多种数字人角色管理
+- 父子数字人层级关系
 - 个性化提示词配置
+- 多数字人切换
 
 #### 6. 会话管理
 - 创建、更新、删除会话
 - 会话历史记录
-- 断点续传支持
+- 断点续传支持（基于 LangGraph Checkpoint）
+- 会话关联数字人ID
 
 #### 7. 上下文压缩
 - 自动压缩长对话历史
@@ -240,42 +364,63 @@ Yumi/
 ├── src/
 │   ├── main/
 │   │   ├── java/yumi/
-│   │   │   ├── agent/              # Agent 相关
-│   │   │   │   ├── BaseYumiAgent.java
-│   │   │   │   ── YumiAgent.java
+│   │   │   ├── agent/              # Agent 核心
+│   │   │   │   ├── BaseYumiAgent.java      # Agent 基础实现
+│   │   │   │   ├── YumiAgent.java          # Agent 接口
+│   │   │   │   └── AgentBuilderService.java # Agent 构建服务
+│   │   │   ├── common/             # 公共组件
+│   │   │   │   ├── YumiContext.java        # 上下文对象
+│   │   │   │   └── JackJsonUtil.java       # JSON 工具
 │   │   │   ├── config/             # 配置类
-│   │   │   │   ├── CorsConfig.java
-│   │   │   │   ├── MemConfig.java
-│   │   │   │   └── StrategyConfig.java
+│   │   │   │   ├── CorsConfig.java         # 跨域配置
+│   │   │   │   ├── MemConfig.java          # 记忆配置
+│   │   │   │   └── StrategyConfig.java     # 策略配置
 │   │   │   ├── entity/             # 实体类
-│   │   │   │   ├── DigitalHumanEntity.java
-│   │   │   │   ├── SessionEntity.java
-│   │   │   │   ├── SkillEntity.java
-│   │   │   │   └── ToolEntity.java
+│   │   │   │   ├── DigitalHumanEntity.java # 数字人实体
+│   │   │   │   ├── SessionEntity.java      # 会话实体
+│   │   │   │   ├── SkillEntity.java        # 技能实体
+│   │   │   │   └── ToolEntity.java         # 工具实体
 │   │   │   ├── hook/               # Hook 钩子
-│   │   │   │   ├── LogAgentHook.java
-│   │   │   │   ├── LogModelHook.java
+│   │   │   │   ├── LogAgentHook.java       # Agent 日志
+│   │   │   │   ├── LogModelHook.java       # 模型日志
 │   │   │   │   └── PersonalizedPromptInterceptor.java
 │   │   │   ├── mapper/             # MyBatis Mapper
 │   │   │   ├── mvc/                # Controller 层
-│   │   │   │   ├── ChatController.java
-│   │   │   │   ├── SessionController.java
-│   │   │   │   ├── SkillController.java
-│   │   │   │   ├── ToolController.java
+│   │   │   │   ├── ChatController.java     # 对话接口
+│   │   │   │   ├── SessionController.java  # 会话管理
+│   │   │   │   ├── SkillController.java    # 技能管理
+│   │   │   │   ├── ToolController.java     # 工具管理
 │   │   │   │   └── DigitalHumanController.java
 │   │   │   ├── service/            # 业务逻辑层
+│   │   │   ├── skill/              # 技能注册
+│   │   │   │   └── DatabaseSkillRegistry.java
 │   │   │   └── tool/               # 工具实现
+│   │   │       ├── SystemToolRegistry.java # 系统工具注册
+│   │   │       ├── RpcToolCallback.java    # RPC 工具
+│   │   │       └── RpcToolConfig.java      # RPC 配置
 │   │   └── resources/
 │   │       ├── application.yml     # 应用配置
-│   │       └── mapper/             # MyBatis XML
+│   │       ├── config/
+│   │       │   └── strategies.json # 策略配置
+│   │       ├── mapper/             # MyBatis XML
+│   │       ── schema/
+│   │           └── init.sql        # 数据库初始化脚本
 │   └── frontend/                   # Vue 前端项目
 │       ├── src/
+│       │   ├── components/
+│       │   │   ├── ChatPage.vue    # 对话页面
+│       │   │   ├── AdminPage.vue   # 管理后台
+│       │   │   ├── DashboardPage.vue # 数据看板
+│       │   │   ├── ToolManage.vue  # 工具管理
+│       │   │   └── SkillManage.vue # 技能管理
+│       │   └── App.vue
 │       ├── package.json
 │       └── vite.config.js
 ├── doc/                            # 项目文档
 │   ├── prd/                        # 产品需求文档
 │   └── 待实现功能列表.md
-── pom.xml                         # Maven 配置
+├── .gitignore
+├── pom.xml                         # Maven 配置
 └── readme.md                       # 项目说明
 ```
 
@@ -329,7 +474,7 @@ GET    /api/digital-human/children  # 子数字人列表
 
 ---
 
-## 🛠️ 开发指南
+## ️ 开发指南
 
 ### 添加新工具
 
@@ -362,9 +507,17 @@ public class MyCustomHook extends MessagesAgentHook {
 }
 ```
 
+### 添加子 Agent
+
+1. 在 `digital_human` 表中创建子 Agent 记录
+2. 设置 `parent_code` 为父 Agent 的 code
+3. 设置 `agent_type = 'child'`
+4. 设置 `multi_agent_enabled = 1`
+5. 配置子 Agent 的技能和工具
+
 ---
 
-## 📝 配置说明
+##  配置说明
 
 ### application.yml 主要配置项
 
@@ -393,6 +546,30 @@ spring:
     redis:                            # Redis 配置
 ```
 
+### strategies.json 策略配置
+
+```json
+{
+  "id": "strategy-multi-stream",
+  "name": "多智能体协作—流式",
+  "description": "基于工具的多智能体协作模式",
+  "requestType": "stream",
+  "beanName": "multiReactAgent",
+  "instruction": "系统提示词..."
+}
+```
+
+---
+
+## 🧪 测试
+
+### 使用 promptfoo 进行 Agent 评测
+
+```bash
+cd src/promptfoo
+promptfoo eval
+```
+
 ---
 
 ## 🤝 贡献指南
@@ -407,7 +584,7 @@ spring:
 
 ---
 
-## 📄 许可证
+##  许可证
 
 本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
 
@@ -419,6 +596,7 @@ spring:
 - [Spring Boot](https://spring.io/projects/spring-boot) - 应用框架
 - [Vue.js](https://vuejs.org/) - 前端框架
 - [Element Plus](https://element-plus.org/) - UI 组件库
+- [LangGraph](https://langchain-ai.github.io/langgraph/) - Agent 图执行框架
 
 ---
 
@@ -431,5 +609,7 @@ spring:
 <div align="center">
 
 **⭐ 如果这个项目对你有帮助，请给个 Star 支持一下！**
+
+Made with ❤️ by Yumi Team
 
 </div>
