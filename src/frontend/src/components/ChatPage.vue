@@ -24,7 +24,7 @@ const isSending = ref(false)
 const chatContainer = ref(null)
 const userId = ref(localStorage.getItem('userId') || '')
 const sessionId = ref(localStorage.getItem('currentSessionId') ? parseInt(localStorage.getItem('currentSessionId')) : null)
-const currentSessionName = ref('默认会话')
+const currentSessionName = ref('')
 
 const digitalHumans = ref([])
 const selectedDigitalHumanId = ref(null)
