@@ -94,8 +94,8 @@ import static com.alibaba.cloud.ai.graph.internal.node.ResumableSubGraphAction.s
 import static java.lang.String.format;
 
 
-public class ReactAgent2 extends BaseAgent {
-    Logger logger = LoggerFactory.getLogger(ReactAgent2.class);
+public class ReactAgent extends BaseAgent {
+    Logger logger = LoggerFactory.getLogger(ReactAgent.class);
 
     private final ConcurrentMap<String, Map<String, Object>> threadIdStateMap;
 
@@ -117,7 +117,7 @@ public class ReactAgent2 extends BaseAgent {
 
     private final Boolean hasTools;
 
-    public ReactAgent2(AgentLlmNode llmNode, AgentToolNode toolNode, CompileConfig compileConfig, Builder builder) {
+    public ReactAgent(AgentLlmNode llmNode, AgentToolNode toolNode, CompileConfig compileConfig, Builder builder) {
         super(builder.name, builder.description, builder.includeContents, builder.returnReasoningContents, builder.outputKey, builder.outputKeyStrategy);
         this.threadIdStateMap = new ConcurrentHashMap<>();
 
@@ -564,7 +564,7 @@ public class ReactAgent2 extends BaseAgent {
             String loopEntryNode,
             String loopExitNode,
             String exitNode,
-            ReactAgent2 agentInstance) throws GraphStateException {
+            ReactAgent agentInstance) throws GraphStateException {
 
         // Chain before_agent hook
         chainHook(graph, beforeAgentHooks, ".before", loopEntryNode, loopEntryNode, exitNode);
@@ -716,7 +716,7 @@ public class ReactAgent2 extends BaseAgent {
             String loopExitNode,
             String loopEntryNode,
             String exitNode,
-            ReactAgent2 agentInstance) throws GraphStateException {
+            ReactAgent agentInstance) throws GraphStateException {
 
         // Model to tools routing
         graph.addConditionalEdges(loopExitNode, edge_async(agentInstance.makeModelToTools(loopEntryNode, exitNode)), Map.of(AGENT_TOOL_NAME, AGENT_TOOL_NAME, exitNode, exitNode, loopEntryNode, loopEntryNode));
@@ -1026,7 +1026,7 @@ public class ReactAgent2 extends BaseAgent {
 
             Map<String, Object> result = new HashMap<>();
 
-            String outputKeyToParent = StringUtils.hasLength(ReactAgent2.this.outputKey) ? ReactAgent2.this.outputKey : "messages";
+            String outputKeyToParent = StringUtils.hasLength(ReactAgent.this.outputKey) ? ReactAgent.this.outputKey : "messages";
             result.put(outputKeyToParent, getGraphResponseFlux(parentState, subGraphResult, null));
             return result;
         }

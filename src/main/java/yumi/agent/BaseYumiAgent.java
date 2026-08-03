@@ -1,7 +1,7 @@
 package yumi.agent;
 
 import com.alibaba.cloud.ai.graph.RunnableConfig;
-import com.alibaba.cloud.ai.graph.agent.ReactAgent2;
+import com.alibaba.cloud.ai.graph.agent.ReactAgent;
 import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
 import com.alibaba.cloud.ai.graph.streaming.OutputType;
 import com.alibaba.cloud.ai.graph.streaming.StreamingOutput;
@@ -22,7 +22,7 @@ public class BaseYumiAgent implements YumiAgent {
     @Override
     public String chat(YumiContext context) {
         try {
-            ReactAgent2 agent = agentBuilderService.buildAgent(context);
+            ReactAgent agent = agentBuilderService.buildAgent(context);
             RunnableConfig config = RunnableConfig.builder()
                     .threadId(context.getSessionKey())
                     .build();
@@ -41,7 +41,7 @@ public class BaseYumiAgent implements YumiAgent {
     @Override
     public Flux<String> chatStream(YumiContext context) {
         try {
-            ReactAgent2 agent = agentBuilderService.buildAgent(context);
+            ReactAgent agent = agentBuilderService.buildAgent(context);
             RunnableConfig config = RunnableConfig.builder()
                     .threadId(context.getSessionKey())
                     .build();

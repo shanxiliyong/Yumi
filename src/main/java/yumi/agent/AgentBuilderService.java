@@ -2,7 +2,7 @@ package yumi.agent;
 
 import com.alibaba.cloud.ai.graph.agent.AgentTool;
 import com.alibaba.cloud.ai.graph.agent.Builder;
-import com.alibaba.cloud.ai.graph.agent.ReactAgent2;
+import com.alibaba.cloud.ai.graph.agent.ReactAgent;
 import com.alibaba.cloud.ai.graph.agent.hook.Hook;
 import com.alibaba.cloud.ai.graph.agent.hook.shelltool.ShellToolAgentHook;
 import com.alibaba.cloud.ai.graph.agent.hook.skills.SkillsAgentHook;
@@ -64,13 +64,13 @@ public class AgentBuilderService {
     private MysqlSaver saver;
 
 
-    public ReactAgent2 buildAgent(YumiContext context) {
+    public ReactAgent buildAgent(YumiContext context) {
         DigitalHumanEntity dh = context.getDh();
         if (dh == null) {
             throw new IllegalArgumentException("数字人配置不能为空");
         }
 
-        Builder agentBuilder = ReactAgent2.builder()
+        Builder agentBuilder = ReactAgent.builder()
                 .name(dh.getCode())
                 .model(chatModel)
                 .enableLogging(false)
@@ -120,7 +120,7 @@ public class AgentBuilderService {
         }
 
 
-        ReactAgent2 agent = agentBuilder.build();
+        ReactAgent agent = agentBuilder.build();
         log.info("初始化Agent完成: name={}, agent={}, ", dh.getName(), JackJsonUtil.toJsonStr(agent));
         return agent;
     }
@@ -268,7 +268,7 @@ public class AgentBuilderService {
                 subContext.setParentDh(parentDh);
 
                 // 递归创建子Agent实例
-                ReactAgent2 childAgent = buildAgent(subContext);
+                ReactAgent childAgent = buildAgent(subContext);
 
                 // 使用 AgentTool.getFunctionToolCallback 包装子Agent为工具
                 // 框架会自动将父Agent的RunnableConfig（含threadId）传递给子Agent，无需手动构建config
