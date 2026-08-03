@@ -542,17 +542,34 @@ public abstract class Agent {
         }
     }
 
+    /**
+     * 构建消息输入参数，用于 LangGraph 节点执行
+     * <p>
+     * 该方法将用户输入的消息转换为 LangGraph 所需的输入格式：
+     * 1. 将消息转换为 List&lt;Message&gt; 格式
+     * 2. 提取最后一条用户消息作为 "input" 参数
+     * 3. 将所有消息作为 "messages" 参数
+     *
+     * @param message 用户输入的消息，可以是 String、Message 或 List&lt;Message&gt;
+     * @return 包含 messages 和 input 的输入参数 Map
+     */
     protected Map<String, Object> buildMessageInput(Object message) {
+        // 将输入消息转换为标准消息列表
         List<Message> messages;
         if (message instanceof List) {
+            // 如果已经是消息列表，直接使用
             messages = (List<Message>) message;
         } else {
+            // 否则调用转换方法，支持 String、Message 等多种输入类型
             messages = convertToMessages(message);
         }
 
+        // 构建输入参数 Map
         Map<String, Object> inputs = new HashMap<>();
+        // 将所有消息放入 inputs，供 LangGraph 的 MessagesState 使用
         inputs.put("messages", messages);
 
+        // 从消息列表中查找最后一条用户消息，作为当前轮次的输入
         UserMessage lastUserMessage = null;
         for (int i = messages.size() - 1; i >= 0; i--) {
             Message msg = messages.get(i);
@@ -561,6 +578,8 @@ public abstract class Agent {
                 break;
             }
         }
+        // 如果找到用户消息，将其文本内容作为 "input" 参数
+        // 这样 LangGraph 节点可以通过 state.get("input") 获取用户输入
         if (lastUserMessage != null) {
             inputs.put("input", lastUserMessage.getText());
         }
