@@ -1,5 +1,6 @@
 package yumi;
 
+import com.alibaba.cloud.ai.graph.agent.ReactAgent;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;

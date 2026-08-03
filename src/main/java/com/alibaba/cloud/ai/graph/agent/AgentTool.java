@@ -61,9 +61,9 @@ public class AgentTool {
      *
      * @param agent the ReactAgent instance
      * @return ToolCallback created with MethodToolCallback
-     * @see AgentTool#create(ReactAgent)
+     * @see AgentTool#create(ReactAgent2)
      */
-    public static ToolCallback getFunctionToolCallback(ReactAgent agent) {
+    public static ToolCallback getFunctionToolCallback(ReactAgent2 agent) {
         return AgentTool.create(agent);
     }
 
@@ -75,7 +75,7 @@ public class AgentTool {
      * @param agent the ReactAgent instance
      * @return ToolCallback created with MethodToolCallback
      */
-    public static ToolCallback create(ReactAgent agent) {
+    public static ToolCallback create(ReactAgent2 agent) {
         // Find the executeAgent method using reflection
         java.lang.reflect.Method method = ReflectionUtils.findMethod(AgentToolExecutor.class,
                 "executeAgent", String.class, ToolContext.class);
@@ -179,9 +179,9 @@ public class AgentTool {
      */
     public static class AgentToolExecutor {
 
-        private final ReactAgent agent;
+        private final ReactAgent2 agent;
 
-        public AgentToolExecutor(ReactAgent agent) {
+        public AgentToolExecutor(ReactAgent2 agent) {
             this.agent = agent;
         }
 
