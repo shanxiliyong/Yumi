@@ -96,34 +96,45 @@ $env:ZHIPUAI_API_KEY="你的智谱AI_API_Key"
 $env:DASHSCOPE_API_KEY="你的通义千问_API_Key"
 ```
 
-#### 方式三：使用 .env 文件
+### 3. 初始化数据库
 
-1. 在项目根目录创建 `.env` 文件：
+#### 方式一：使用初始化脚本（推荐）
 
-```env
-ZHIPUAI_API_KEY=你的智谱AI_API_Key
-DASHSCOPE_API_KEY=你的通义千问_API_Key
+项目提供了完整的数据库初始化脚本，包含所有表结构和初始数据：
+
+```bash
+# 使用 MySQL 命令行执行初始化脚本
+mysql -u root -p < src/main/resources/schema/init.sql
 ```
 
-2. 添加 `spring-dotenv` 依赖到 `pom.xml`：
+或者在 MySQL 客户端中执行：
 
-```xml
-<dependency>
-    <groupId>me.paulschwarz</groupId>
-    <artifactId>spring-dotenv</artifactId>
-    <version>4.0.0</version>
-</dependency>
+```sql
+source /path/to/Yumi/src/main/resources/schema/init.sql;
 ```
 
-> ⚠️ **重要**: 确保 `.env` 文件已添加到 `.gitignore`，不要将 API Key 提交到代码仓库！
+#### 方式二：手动创建
 
-### 3. 配置数据库
-
-#### 创建数据库
+如果需要使用自定义配置，可以手动创建数据库：
 
 ```sql
 CREATE DATABASE yumi DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
+
+然后执行初始化脚本中的建表语句。
+
+#### 初始化脚本包含的表
+
+| 表名 | 说明 | 用途 |
+|------|------|------|
+| `chat_sessions` | 会话表 | 存储用户会话信息 |
+| `GRAPH_THREAD` | 线程表 | Agent 图执行线程管理 |
+| `GRAPH_CHECKPOINT` | 检查点表 | Agent 执行状态断点保存 |
+| `digital_human` | 数字人/Agent表 | 数字人和 Agent 统一管理 |
+| `skill` | 技能表 | 技能定义和管理 |
+| `tool` | 工具表 | 工具注册和配置 |
+| `rpc_interface` | RPC接口表 | RPC 接口定义 |
+| `id_generator` | ID生成器表 | 分布式 ID 生成 |
 
 #### 修改数据库配置
 
