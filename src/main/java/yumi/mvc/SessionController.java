@@ -39,6 +39,7 @@ public class SessionController {
             userSessions.add(Map.of(
                     "sessionId", session.getId(),
                     "name", session.getName(),
+                    "digitalHumanId", session.getDigitalHumanId(),
                     "createdAt", session.getCreateTime() == null ? "" : session.getCreateTime().toString(),
                     "lastMessage", session.getLastMessage() == null ? "暂无消息" : session.getLastMessage()
             ));

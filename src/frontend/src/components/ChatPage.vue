@@ -198,7 +198,6 @@ const loadMessagesFromBackend = async (sessionId) => {
     const requestBody = {
       userId: userId.value,
       sessionId: sessionId,
-      digitalHumanId: selectedDigitalHumanId.value,
       agentType: 'single'
     }
     const response = await fetch('/api/sessions/messages', {
@@ -239,7 +238,7 @@ const scrollToBottom = async () => {
 
 const sendMessage = async () => {
   if (!inputMessage.value.trim() || isSending.value) return
-  if (!sessionId.value) await createSession()
+  if (!sessionId.value) { ElMessage.warning('请先创建会话'); return }
 
   const userMessage = inputMessage.value.trim()
   inputMessage.value = ''
@@ -253,13 +252,6 @@ const sendMessage = async () => {
   scrollToBottom()
 
   let requestType = 'stream'
-
-  if (selectedDigitalHumanId.value) {
-    const dh = digitalHumans.value.find(d => d.id === selectedDigitalHumanId.value)
-    if (dh) {
-      requestType = dh.streamingEnabled === 1 ? 'stream' : 'send'
-    }
-  }
 
   try {
     if (requestType === 'stream') {
@@ -279,9 +271,6 @@ const sendStreamMessage = async (userMessage) => {
     userId: userId.value,
     sessionId: sessionId.value,
     message: userMessage
-  }
-  if (selectedDigitalHumanId.value) {
-    requestBody.digitalHumanId = selectedDigitalHumanId.value
   }
   const response = await fetch('/api/chat/stream', {
     method: 'POST',
@@ -345,9 +334,6 @@ const sendNonStreamMessage = async (userMessage) => {
     sessionId: sessionId.value,
     message: userMessage
   }
-  if (selectedDigitalHumanId.value) {
-    requestBody.digitalHumanId = selectedDigitalHumanId.value
-  }
   const response = await fetch('/api/chat/send', {
     method: 'POST',
     headers: {
@@ -388,8 +374,6 @@ const initApp = async () => {
     } else {
       await switchSession(sessions.value[0])
     }
-  } else if (!sessionId.value && userId.value) {
-    await createSession()
   }
   scrollToBottom()
 }
