@@ -40,7 +40,7 @@ public class SessionController {
         List<Map<String, Object>> userSessions = new ArrayList<>();
         for (SessionEntity session : sessions) {
             DigitalHumanEntity digitalHuman = null;
-            String requestType = "stream"; // 默认流式
+            String requestType = "send"; // 默认流式
 
             if (session.getDigitalHumanId() != null) {
                 digitalHuman = digitalHumanService.getById(session.getDigitalHumanId());
