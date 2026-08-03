@@ -21,7 +21,7 @@ const props = defineProps(['username']);
 const emit = defineEmits(['logout', 'navigate']);
 
 const activeMenu = ref('dashboard');
-const isCollapse = ref(false);
+const isCollapse = ref(+false);
 
 const goBack = () => {
   emit('navigate', 'chat');
