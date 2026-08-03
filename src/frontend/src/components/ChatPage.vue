@@ -315,7 +315,8 @@ const sendStreamMessage = async (userMessage) => {
     for (const line of lines) {
       if (line.startsWith('data:')) {
         const content = line.slice(5).replace(/data:/g, '')
-        botMessage += content
+        // 当 data 为空时，保留一个换行符
+        botMessage += content === '' ? '\n' : content
         debugCount++
         if (debugCount <= 50) {
           console.log(`SSE chunk[${debugCount}]: "${content.replace(/\n/g, '\\n')}"`)
@@ -329,7 +330,7 @@ const sendStreamMessage = async (userMessage) => {
 
   if (buffer && buffer.startsWith('data:')) {
     const content = buffer.slice(5).replace(/data:/g, '')
-    botMessage += content
+    botMessage += content === '' ? '\n' : content
     const msgIndex = messages.value.findIndex(m => m.id === botMessageId)
     if (msgIndex !== -1) messages.value[msgIndex].content = botMessage
     scrollToBottom()
