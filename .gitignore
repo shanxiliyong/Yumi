@@ -1,0 +1,28 @@
+# Maven
+target/*
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+
+# Frontend
+src/frontend/node_modules/
+src/frontend/dist/
+src/frontend/.vite/
+
+# IDE
+.idea/
+*.iml
+*.iws
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+EOF 
