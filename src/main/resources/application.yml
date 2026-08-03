@@ -1,0 +1,43 @@
+spring:
+  ai:
+    zhipuai:
+      api-key: 332718a5d79147dcafcbb378187405b7.Lnvt8tGMuzWuaMyY
+      chat:
+        options:
+          model: GLM-4-Flash
+
+    dashscope:
+      api-key: sk-ws-H.EMPPPMI.nRMc.MEQCIG55msTEqe2Q_L-vuBMyNGV7xkllF8EQC2PvXsHr8Vb-AiBxc--4qK-iv5RWrq-ZF9YM1DvAgRun9x44xez6Xnm6Cg # 读取环境变量中的 API Key
+      chat:
+        options:
+          model: qwen3.7-max # 指定使用的模型，如 qwen-max, qwen-plus 等
+    chat:
+      memory:
+        store:
+          type: jdbc
+      client:
+        observations:
+          log-prompt: true
+          log-completion: true
+          include-error-logging: true # 记录错误日志
+  datasource:
+    url: jdbc:mysql://localhost:3306/yumi?useUnicode=true&allowPublicKeyRetrieval=true&autoReconnect=true&characterEncoding=UTF-8&useSSL=false
+    username: root
+    password: 12345678
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  mybatis:
+    mapper-locations: classpath:mapper/*.xml
+    type-aliases-package: yumi.entity
+  data:
+    redis: # redis 配置
+      host: localhost
+      port: 6379
+      password:
+  devtools:
+    restart:
+      enabled: true
+      exclude: static/**, public/**
+      additional-paths: src/main/java, src/main/resources
+logging:
+  level:
+    com.alibaba.cloud.ai.dashscope: DEBUG

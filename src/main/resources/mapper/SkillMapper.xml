@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="yumi.mapper.SkillMapper">
+
+    <resultMap id="SkillResultMap" type="yumi.entity.SkillEntity">
+        <id property="id" column="id" />
+        <result property="name" column="name" />
+        <result property="category" column="category" />
+        <result property="version" column="version" />
+        <result property="content" column="content" />
+        <result property="description" column="description" />
+        <result property="status" column="status" />
+        <result property="createTime" column="create_time" />
+        <result property="updateTime" column="update_time" />
+        <result property="updateUser" column="update_user" />
+    </resultMap>
+
+    <select id="selectByName" resultMap="SkillResultMap">
+        SELECT * FROM skill WHERE name = #{name}
+    </select>
+
+    <select id="selectAll" resultMap="SkillResultMap">
+        SELECT * FROM skill ORDER BY update_time DESC
+    </select>
+
+    <select id="selectByIds" resultMap="SkillResultMap">
+        SELECT * FROM skill WHERE id IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="selectByStatus" resultMap="SkillResultMap">
+        SELECT * FROM skill WHERE status = #{status} ORDER BY update_time DESC
+    </select>
+
+    <select id="selectPage" resultMap="SkillResultMap">
+        SELECT * FROM skill
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (name LIKE CONCAT('%', #{keyword}, '%') OR category LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY update_time DESC
+    </select>
+
+    <insert id="insertSkill" parameterType="yumi.entity.SkillEntity" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO skill (name, category, version, content, description, status, create_time, update_time, update_user)
+        VALUES (#{name}, #{category}, #{version}, #{content}, #{description}, #{status}, #{createTime}, #{updateTime}, #{updateUser})
+    </insert>
+
+    <update id="updateSkill" parameterType="yumi.entity.SkillEntity">
+        UPDATE skill
+        SET name = #{name},
+            category = #{category},
+            version = #{version},
+            content = #{content},
+            description = #{description},
+            status = #{status},
+            update_time = #{updateTime},
+            update_user = #{updateUser}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM skill WHERE id = #{id}
+    </delete>
+
+</mapper>

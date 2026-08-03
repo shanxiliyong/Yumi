@@ -1,0 +1,36 @@
+yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: Yumi Agent 评测
+
+providers:
+  - id: https
+    label: Yumi-Java-Agent
+    config:
+      url: http://127.0.0.1:8080/api/chat/send
+      method: POST
+      headers:
+        Content-Type: application/json
+      body:
+        userId: "Y2"
+        sessionId: 38
+        digitalHumanId: 8
+        message: "{{task}}"
+      # 重点：从返回json.content 提取agent输出文本
+      transformResponse: "json.content"
+
+prompts:
+  - "{{task}}"
+
+tests:
+  - vars:
+      task: "查询有哪些表"
+    assert:
+      - type: contains
+        value: "chat_sessions"
+      - type: contains
+        value: "digital_human"
+
+  - vars:
+      task: "计算12乘以8"
+    assert:
+      - type: contains
+        value: "96"

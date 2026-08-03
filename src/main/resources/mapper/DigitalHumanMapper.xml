@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="yumi.mapper.DigitalHumanMapper">
+
+    <resultMap id="DigitalHumanResultMap" type="yumi.entity.DigitalHumanEntity">
+        <id property="id" column="id" />
+        <result property="code" column="code" />
+        <result property="name" column="name" />
+        <result property="agentType" column="agent_type" />
+        <result property="parentCode" column="parent_code" />
+        <result property="avatar" column="avatar" />
+        <result property="description" column="description" />
+        <result property="systemPrompt" column="system_prompt" />
+        <result property="multiAgentEnabled" column="multi_agent_enabled" />
+        <result property="streamingEnabled" column="streaming_enabled" />
+        <result property="skillIds" column="skill_ids" />
+        <result property="toolIds" column="tool_ids" />
+        <result property="config" column="config" />
+        <result property="createTime" column="create_time" />
+        <result property="updateTime" column="update_time" />
+        <result property="updateUser" column="update_user" />
+    </resultMap>
+
+    <select id="selectByCode" resultMap="DigitalHumanResultMap">
+        SELECT * FROM digital_human WHERE code = #{code}
+    </select>
+
+    <select id="selectByName" resultMap="DigitalHumanResultMap">
+        SELECT * FROM digital_human WHERE name = #{name} AND agent_type = 'parent'
+    </select>
+
+    <select id="selectAll" resultMap="DigitalHumanResultMap">
+        SELECT * FROM digital_human WHERE agent_type = 'parent' ORDER BY update_time DESC
+    </select>
+
+    <select id="selectPage" resultMap="DigitalHumanResultMap">
+        SELECT * FROM digital_human
+        <where>
+            AND agent_type = 'parent'
+            <if test="keyword != null and keyword != ''">
+                AND name LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+        </where>
+        ORDER BY update_time DESC
+    </select>
+
+    <select id="selectChildPage" resultMap="DigitalHumanResultMap">
+        SELECT * FROM digital_human
+        <where>
+            AND agent_type = 'child'
+            <if test="parentCode != null and parentCode != ''">
+                AND parent_code = #{parentCode}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (name LIKE CONCAT('%', #{keyword}, '%') OR code LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY update_time DESC
+    </select>
+
+    <insert id="insertDigitalHuman" parameterType="yumi.entity.DigitalHumanEntity" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO digital_human (code, name, agent_type, parent_code, avatar, description, system_prompt, multi_agent_enabled, streaming_enabled, skill_ids, tool_ids, config, create_time, update_time, update_user)
+        VALUES (#{code}, #{name}, #{agentType}, #{parentCode}, #{avatar}, #{description}, #{systemPrompt}, #{multiAgentEnabled}, #{streamingEnabled}, #{skillIds}, #{toolIds}, #{config}, #{createTime}, #{updateTime}, #{updateUser})
+    </insert>
+
+    <update id="updateDigitalHuman" parameterType="yumi.entity.DigitalHumanEntity">
+        UPDATE digital_human
+        SET code = #{code},
+            name = #{name},
+            agent_type = #{agentType},
+            parent_code = #{parentCode},
+            avatar = #{avatar},
+            description = #{description},
+            system_prompt = #{systemPrompt},
+            multi_agent_enabled = #{multiAgentEnabled},
+            streaming_enabled = #{streamingEnabled},
+            skill_ids = #{skillIds},
+            tool_ids = #{toolIds},
+            config = #{config},
+            update_time = #{updateTime},
+            update_user = #{updateUser}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM digital_human WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" resultMap="DigitalHumanResultMap">
+        SELECT * FROM digital_human WHERE id = #{id}
+    </select>
+
+    <select id="countChildrenByParentCode" resultType="int">
+        SELECT COUNT(*) FROM digital_human WHERE agent_type = 'child' AND parent_code = #{parentCode}
+    </select>
+
+    <select id="selectChildrenByParentCode" resultMap="DigitalHumanResultMap">
+        SELECT * FROM digital_human
+        WHERE parent_code = #{parentCode}
+          AND agent_type = 'child'
+    </select>
+
+</mapper>

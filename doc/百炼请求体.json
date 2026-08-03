@@ -1,0 +1,177 @@
+{
+  "model": "qwen3.7-max",
+  "input": {
+    "messages": [
+      {
+        "content": "# 角色设定\n你是业务中心的专属数字人助手，负责处理业务查询并以纯文本形式展示信息。\n\n# 核心工作流\n1. 参数校验：接收查询请求时，首先检查是否缺少必要参数。若缺失，必须立即礼貌追问，引导用户补充，严禁猜测或编造数据。\n2. 执行查询：用户补齐参数后，执行查询并返回结果。\n3. 并行工具调度（重要）：当用户的请求需要调用多个工具，且这些工具之间**没有相互依赖关系**时，你必须在同一次响应中返回所有需要调用的工具及其参数。严禁分步串行调用，由应用侧负责并行执行以提升效率。\n\n# 字段返回规则\n- 仅返回用户提问中涉及的字段，不要返回无关字段。\n- 例如用户问\"订单001的下单时间\"，只返回 createTime 字段。\n- 例如用户问\"订单001的下单时间和金额\"，只返回 createTime、amount 两个字段。\n- 如果用户询问\"订单详情\"或\"全部信息\"，则返回所有字段。\n\n# 展示规范（绝对红线）\n- 严禁展示任何业务机构相关的图片、Logo、图标或UI界面。\n- 所有业务信息（如订单明细、状态等）必须100%转化为结构化的纯文本或表格展示。\n\n# 沟通风格\n专业、严谨、自然，仅处理业务相关问题。\n\n# 并发调度示例\n- 场景：用户提问“查询订单001和订单002的信息”。\n- 分析：这两个查询请求完全独立，没有任何先后依赖关系。\n- 正确做法：必须在同一次回复中，一次性返回两个查询工具的调用（例如同时返回查询订单001的工具和查询订单002的工具），交由系统并行执行。\n- 错误做法：先调用查询订单001，等待结果后再调用查询订单002。",
+        "role": "system"
+      },
+      {
+        "content": "并行查询订单001和订单002信息",
+        "role": "user"
+      },
+      {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "id": "call_e23c9a7212fa483d9a954794",
+            "type": "function",
+            "function": {
+              "name": "query_order_detail",
+              "arguments": "{\"orderId\": \"001\"}"
+            }
+          },
+          {
+            "id": "call_35d7271cdadb46a7a6aa425c",
+            "type": "function",
+            "function": {
+              "name": "query_order_detail",
+              "arguments": "{\"orderId\": \"002\"}"
+            }
+          }
+        ]
+      },
+      {
+        "content": "{\"data\":{\"amount\":299.99,\"orderNo\":\"ORD001\",\"statusDesc\":\"已支付_001\",\"orderId\":\"001\",\"createTime\":\"2026-07-28 10:30:00\",\"payTime\":\"2026-07-28 10:32:00\",\"shippingAddress\":{\"address\":\"上海市浦东新区陆家嘴环路1000号\",\"receiverName\":\"张三\",\"receiverPhone\":\"138****8888\"},\"remark\":\"请尽快发货_\",\"items\":[{\"quantity\":2,\"name\":\"商品A\",\"price\":99.99,\"skuId\":\"SKU001\"},{\"quantity\":1,\"name\":\"商品B\",\"price\":100.01,\"skuId\":\"SKU002\"}],\"status\":\"PAID\"},\"success\":true,\"mock\":true,\"message\":\"Mock 调用成功\"}",
+        "role": "tool",
+        "name": "query_order_detail",
+        "tool_call_id": "call_e23c9a7212fa483d9a954794"
+      },
+      {
+        "content": "{\"data\":{\"amount\":299.99,\"orderNo\":\"ORD002\",\"statusDesc\":\"已支付_002\",\"orderId\":\"002\",\"createTime\":\"2026-07-28 10:30:00\",\"payTime\":\"2026-07-28 10:32:00\",\"shippingAddress\":{\"address\":\"上海市浦东新区陆家嘴环路1000号\",\"receiverName\":\"张三\",\"receiverPhone\":\"138****8888\"},\"remark\":\"请尽快发货_\",\"items\":[{\"quantity\":2,\"name\":\"商品A\",\"price\":99.99,\"skuId\":\"SKU001\"},{\"quantity\":1,\"name\":\"商品B\",\"price\":100.01,\"skuId\":\"SKU002\"}],\"status\":\"PAID\"},\"success\":true,\"mock\":true,\"message\":\"Mock 调用成功\"}",
+        "role": "tool",
+        "name": "query_order_detail",
+        "tool_call_id": "call_35d7271cdadb46a7a6aa425c"
+      },
+      {
+        "content": "已为您并行查询到两个订单的详情，信息如下：\n\n---\n\n**订单001**\n- 订单ID：001\n- 订单编号：ORD001\n- 状态：已支付\n- 金额：¥299.99\n- 创建时间：2026-07-28 10:30:00\n- 支付时间：2026-07-28 10:32:00\n- 收货地址：上海市浦东新区陆家嘴环路1000号\n- 收货人：张三（138****8888）\n- 商品明细：\n  - 商品A（SKU001）× 2，单价：¥99.99\n  - 商品B（SKU002）× 1，单价：¥100.01\n- 备注：请尽快发货\n\n---\n\n**订单002**\n- 订单ID：002\n- 订单编号：ORD002\n- 状态：已支付\n- 金额：¥299.99\n- 创建时间：2026-07-28 10:30:00\n- 支付时间：2026-07-28 10:32:00\n- 收货地址：上海市浦东新区陆家嘴环路1000号\n- 收货人：张三（138****8888）\n- 商品明细：\n  - 商品A（SKU001）× 2，单价：¥99.99\n  - 商品B（SKU002）× 1，单价：¥100.01\n- 备注：请尽快发货\n\n---\n\n以上两个订单均已并行查询完毕，如需进一步了解某个订单的细节，请随时告知。",
+        "role": "assistant"
+      },
+      {
+        "content": "并行查询订单001和订单002信息",
+        "role": "user"
+      },
+      {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "id": "call_c8e4480cdea143feb2469d9b",
+            "type": "function",
+            "function": {
+              "name": "query_order_detail",
+              "arguments": "{\"orderId\": \"001\"}"
+            }
+          },
+          {
+            "id": "call_9dd781e82b6b43c5a07329bb",
+            "type": "function",
+            "function": {
+              "name": "query_order_detail",
+              "arguments": "{\"orderId\": \"002\"}"
+            }
+          }
+        ]
+      },
+      {
+        "content": "{\"data\":{\"amount\":299.99,\"orderNo\":\"ORD001\",\"statusDesc\":\"已支付_001\",\"orderId\":\"001\",\"createTime\":\"2026-07-28 10:30:00\",\"payTime\":\"2026-07-28 10:32:00\",\"shippingAddress\":{\"receiverPhone\":\"138****8888\",\"address\":\"上海市浦东新区陆家嘴环路1000号\",\"receiverName\":\"张三\"},\"remark\":\"请尽快发货_\",\"items\":[{\"price\":99.99,\"skuId\":\"SKU001\",\"quantity\":2,\"name\":\"商品A\"},{\"price\":100.01,\"skuId\":\"SKU002\",\"quantity\":1,\"name\":\"商品B\"}],\"status\":\"PAID\"},\"success\":true,\"mock\":true,\"message\":\"Mock 调用成功\"}",
+        "role": "tool",
+        "name": "query_order_detail",
+        "tool_call_id": "call_c8e4480cdea143feb2469d9b"
+      },
+      {
+        "content": "{\"data\":{\"amount\":299.99,\"orderNo\":\"ORD002\",\"statusDesc\":\"已支付_002\",\"orderId\":\"002\",\"createTime\":\"2026-07-28 10:30:00\",\"payTime\":\"2026-07-28 10:32:00\",\"shippingAddress\":{\"receiverPhone\":\"138****8888\",\"address\":\"上海市浦东新区陆家嘴环路1000号\",\"receiverName\":\"张三\"},\"remark\":\"请尽快发货_\",\"items\":[{\"price\":99.99,\"skuId\":\"SKU001\",\"quantity\":2,\"name\":\"商品A\"},{\"price\":100.01,\"skuId\":\"SKU002\",\"quantity\":1,\"name\":\"商品B\"}],\"status\":\"PAID\"},\"success\":true,\"mock\":true,\"message\":\"Mock 调用成功\"}",
+        "role": "tool",
+        "name": "query_order_detail",
+        "tool_call_id": "call_9dd781e82b6b43c5a07329bb"
+      },
+      {
+        "content": "已为您并行查询到两个订单的详情，信息如下：\n\n---\n\n**订单001**\n- 订单ID：001\n- 订单编号：ORD001\n- 状态：已支付\n- 金额：¥299.99\n- 创建时间：2026-07-28 10:30:00\n- 支付时间：2026-07-28 10:32:00\n- 收货地址：上海市浦东新区陆家嘴环路1000号\n- 收货人：张三（138****8888）\n- 商品明细：\n  - 商品A（SKU001）× 2，单价：¥99.99\n  - 商品B（SKU002）× 1，单价：¥100.01\n- 备注：请尽快发货\n\n---\n\n**订单002**\n- 订单ID：002\n- 订单编号：ORD002\n- 状态：已支付\n- 金额：¥299.99\n- 创建时间：2026-07-28 10:30:00\n- 支付时间：2026-07-28 10:32:00\n- 收货地址：上海市浦东新区陆家嘴环路1000号\n- 收货人：张三（138****8888）\n- 商品明细：\n  - 商品A（SKU001）× 2，单价：¥99.99\n  - 商品B（SKU002）× 1，单价：¥100.01\n- 备注：请尽快发货\n\n---\n\n以上两个订单均已并行查询完毕，如需进一步了解某个订单的细节，请随时告知。",
+        "role": "assistant"
+      },
+      {
+        "content": "并行查询订单001和订单002信息",
+        "role": "user"
+      },
+      {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "id": "call_7a697a170e804fdbaf70e7c9",
+            "type": "function",
+            "function": {
+              "name": "query_order_detail",
+              "arguments": "{\"orderId\": \"001\"}"
+            }
+          },
+          {
+            "id": "call_72e479eb88eb4337b88e200f",
+            "type": "function",
+            "function": {
+              "name": "query_order_detail",
+              "arguments": "{\"orderId\": \"002\"}"
+            }
+          }
+        ]
+      },
+      {
+        "content": "{\"data\":{\"amount\":299.99,\"orderNo\":\"ORD001\",\"statusDesc\":\"已支付_001\",\"orderId\":\"001\",\"createTime\":\"2026-07-28 10:30:00\",\"payTime\":\"2026-07-28 10:32:00\",\"shippingAddress\":{\"receiverName\":\"张三\",\"address\":\"上海市浦东新区陆家嘴环路1000号\",\"receiverPhone\":\"138****8888\"},\"remark\":\"请尽快发货_\",\"items\":[{\"name\":\"商品A\",\"quantity\":2,\"skuId\":\"SKU001\",\"price\":99.99},{\"name\":\"商品B\",\"quantity\":1,\"skuId\":\"SKU002\",\"price\":100.01}],\"status\":\"PAID\"},\"success\":true,\"mock\":true,\"message\":\"Mock 调用成功\"}",
+        "role": "tool",
+        "name": "query_order_detail",
+        "tool_call_id": "call_7a697a170e804fdbaf70e7c9"
+      },
+      {
+        "content": "{\"data\":{\"amount\":299.99,\"orderNo\":\"ORD002\",\"statusDesc\":\"已支付_002\",\"orderId\":\"002\",\"createTime\":\"2026-07-28 10:30:00\",\"payTime\":\"2026-07-28 10:32:00\",\"shippingAddress\":{\"receiverName\":\"张三\",\"address\":\"上海市浦东新区陆家嘴环路1000号\",\"receiverPhone\":\"138****8888\"},\"remark\":\"请尽快发货_\",\"items\":[{\"name\":\"商品A\",\"quantity\":2,\"skuId\":\"SKU001\",\"price\":99.99},{\"name\":\"商品B\",\"quantity\":1,\"skuId\":\"SKU002\",\"price\":100.01}],\"status\":\"PAID\"},\"success\":true,\"mock\":true,\"message\":\"Mock 调用成功\"}",
+        "role": "tool",
+        "name": "query_order_detail",
+        "tool_call_id": "call_72e479eb88eb4337b88e200f"
+      }
+    ]
+  },
+  "parameters": {
+    "result_format": "message",
+    "incremental_output": false,
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "description": "查询单个订单详情。**此操作是只读的，且与其他订单查询完全独立，支持并发调用**。\n\n接口信息:\n- 接口名: com.example.order.OrderService\n- 方法名: queryOrderDetail\n- 分组: order-group\n- 版本: 1.0.0\n\n参数说明:\n- orderId (String) [必填]: 订单ID 示例: 10001\n- orderNo (String) [选填]: 订单编号 示例: ORD10001\n\n参数格式: {\"paramName\": \"value\"}\n\n响应字段说明:\n- orderId (String): 订单ID 示例: 10001\n- orderNo (String): 订单编号 示例: ORD10001\n- status (String): 订单状态 示例: PAID\n- statusDesc (String): 状态描述 示例: 已支付\n- amount (BigDecimal): 订单金额 示例: 299.99\n- createTime (String): 创建时间/下单时间 示例: 2026-07-28 10:30:00\n- payTime (String): 支付时间 示例: 2026-07-28 10:32:00\n- shippingAddress (Object): 收货地址信息 示例: {...}\n- items (Array): 商品明细列表 示例: [...]\n- remark (String): 备注 示例: 请尽快发货\n\n重要: 仅返回用户查询涉及的字段，无需返回全部字段。",
+          "name": "query_order_detail",
+          "parameters": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "additionalProperties": false,
+            "type": "object"
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "description": "查询用户信息\n\n接口信息:\n- 接口名: com.example.user.UserService\n- 方法名: queryUserInfo\n- 分组: user-group\n- 版本: 1.0.0\n\n参数说明:\n- userId (String) [必填]: 用户ID 示例: 20001\n\n参数格式: {\"paramName\": \"value\"}\n\n响应字段说明:\n- userId (String): 用户ID 示例: 20001\n- userName (String): 用户名 示例: 用户20001\n- nickName (String): 昵称 示例: 昵称20001\n- mobile (String): 手机号 示例: 138****8888\n- email (String): 邮箱 示例: user@example.com\n- status (String): 账户状态 示例: ACTIVE\n- statusDesc (String): 状态描述 示例: 正常\n- level (String): 用户等级 示例: VIP\n- registerTime (String): 注册时间 示例: 2025-01-15 09:00:00\n- lastLoginTime (String): 最近登录时间 示例: 2026-07-28 08:30:00\n\n重要: 仅返回用户查询涉及的字段，无需返回全部字段。",
+          "name": "query_user_info",
+          "parameters": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "additionalProperties": false,
+            "type": "object"
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "description": "查询商品详情\n\n接口信息:\n- 接口名: com.example.product.ProductService\n- 方法名: queryProductDetail\n- 分组: product-group\n- 版本: 1.0.0\n\n参数说明:\n- productId (String) [必填]: 商品ID 示例: 30001\n- skuId (String) [选填]: SKU ID 示例: SKU30001\n\n参数格式: {\"paramName\": \"value\"}\n\n响应字段说明:\n- productId (String): 商品ID 示例: 30001\n- skuId (String): SKU ID 示例: SKU30001\n- name (String): 商品名称 示例: 商品30001\n- category (String): 商品分类 示例: 电子产品\n- brand (String): 品牌 示例: 品牌A\n- price (BigDecimal): 售价 示例: 199.99\n- originalPrice (BigDecimal): 原价 示例: 299.99\n- stock (Integer): 库存 示例: 100\n- sold (Integer): 已售数量 示例: 520\n- description (String): 商品描述 示例: 这是一款优质商品\n- status (String): 商品状态 示例: ON_SALE\n- statusDesc (String): 状态描述 示例: 在售\n\n重要: 仅返回用户查询涉及的字段，无需返回全部字段。",
+          "name": "query_product_detail",
+          "parameters": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "additionalProperties": false,
+            "type": "object"
+          }
+        }
+      }
+    ],
+    "vl_enable_image_hw_output": false
+  },
+  "stream": false
+}
