@@ -16,15 +16,17 @@ USE yumi;
 -- 会话表
 CREATE TABLE IF NOT EXISTS `chat_sessions`
 (
-    `id`           bigint                                  NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-    `user_id`      varchar(36) COLLATE utf8mb4_unicode_ci  NOT NULL COMMENT '用户ID',
-    `name`         varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '会话名称',
-    `last_message` text COLLATE utf8mb4_unicode_ci COMMENT '最后一条消息预览',
-    `create_time`  datetime                                NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_time`  datetime                                NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `id`               bigint                                  NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `user_id`          varchar(36) COLLATE utf8mb4_unicode_ci  NOT NULL COMMENT '用户ID',
+    `name`             varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '会话名称',
+    `digital_human_id` bigint                                  DEFAULT NULL COMMENT '数字人ID',
+    `last_message`     text COLLATE utf8mb4_unicode_ci COMMENT '最后一条消息预览',
+    `create_time`      datetime                                NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`      datetime                                NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
-    KEY            `idx_user_id` (`user_id`),
-    KEY            `idx_update_time` (`update_time`)
+    KEY                `idx_user_id` (`user_id`),
+    KEY                `idx_update_time` (`update_time`),
+    KEY                `idx_digital_human_id` (`digital_human_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='会话表';
 
 -- ============================================
