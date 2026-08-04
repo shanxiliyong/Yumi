@@ -842,10 +842,42 @@ public class ReactAgent extends BaseAgent {
         };
     }
 
+    /**
+     * 创建模型输出到工具的路由决策器
+     * <p>
+     * 该方法返回一个 EdgeAction，用于在 ReAct 循环中决定下一步的执行方向。
+     * 当 LLM 完成推理后，该方法根据消息内容判断是继续调用工具、回到模型继续推理，还是结束执行。
+     * <p>
+     * 路由决策优先级：
+     * <pre>
+     * 1. 检查 jump_to 指令（来自 afterModel Hook）
+     *    - 允许 Hook 主动控制工作流走向
+     *    - 支持跳转到：model（模型）、end（结束）、tool（工具）
+     *
+     * 2. 检查最后一条消息类型
+     *    - AssistantMessage 且有工具调用 → 去工具节点执行
+     *    - AssistantMessage 且无工具调用 → 结束执行
+     *
+     * 3. 检查工具响应完整性
+     *    - 所有请求的工具都已执行 → 回到模型继续推理
+     *    - 还有工具待执行 → 继续执行工具
+     * </pre>
+     * <p>
+     * 典型执行流程：
+     * <pre>
+     * LLM 推理 → 返回工具调用 → makeModelToTools 判断 → 执行工具 → 工具返回
+     *     → makeModelToTools 判断 → 所有工具完成 → 回到模型继续推理
+     *     → LLM 无工具调用 → makeModelToTools 判断 → 结束
+     * </pre>
+     *
+     * @param modelDestination 模型节点目标名称（继续推理时的跳转目标）
+     * @param endDestination 结束节点目标名称（执行完成时的跳转目标）
+     * @return EdgeAction 路由决策器，根据状态返回下一个节点名称
+     */
     private EdgeAction makeModelToTools(String modelDestination, String endDestination) {
         return state -> {
-            // Priority 1: Check for jump_to instruction from hooks
-            // This allows afterModel hooks to control workflow execution
+            // 优先级 1：检查 jump_to 指令（来自 afterModel Hook）
+            // 允许 Hook 主动控制工作流走向，实现人工介入、提前终止等场景
             Object jumpToValue = state.value("jump_to").orElse(null);
             if (jumpToValue != null) {
                 JumpTo jumpTo = null;
@@ -855,36 +887,36 @@ public class ReactAgent extends BaseAgent {
                     jumpTo = JumpTo.fromStringOrNull((String) jumpToValue);
                 }
 
-                // If a valid jump_to instruction exists, execute it immediately
+                // 如果存在有效的 jump_to 指令，立即执行跳转
                 if (jumpTo != null) {
                     return switch (jumpTo) {
-                        case model -> modelDestination;
-                        case end -> endDestination;
-                        case tool -> AGENT_TOOL_NAME;
+                        case model -> modelDestination;  // 跳转到模型节点，继续推理
+                        case end -> endDestination;      // 跳转到结束节点，终止执行
+                        case tool -> AGENT_TOOL_NAME;    // 跳转到工具节点，执行工具
                     };
                 }
             }
 
-            // Priority 2: Check message content for tool calls
+            // 优先级 2：检查消息内容，根据 LLM 输出决定路由
             List<Message> messages = (List<Message>) state.value("messages").orElse(List.of());
             if (messages.isEmpty()) {
                 logger.warn("No messages found in state when routing from model to tools");
-                return endDestination;
+                return endDestination;  // 无消息，默认结束
             }
             Message lastMessage = messages.get(messages.size() - 1);
 
-            // 1. Check the last message type
+            // 情况 1：最后一条消息是 AssistantMessage（LLM 输出）
             if (lastMessage instanceof AssistantMessage assistantMessage) {
-                // 2. If last message is AssistantMessage
                 if (assistantMessage.hasToolCalls()) {
-                    return AGENT_TOOL_NAME;
+                    return AGENT_TOOL_NAME;  // LLM 请求调用工具 → 去工具节点
                 } else {
-                    return endDestination;
+                    return endDestination;   // LLM 无工具调用 → 结束执行
                 }
-            } else if (lastMessage instanceof ToolResponseMessage) {
-                // 3. If last message is ToolResponseMessage
+            }
+            // 情况 2：最后一条消息是 ToolResponseMessage（工具执行结果）
+            else if (lastMessage instanceof ToolResponseMessage) {
                 if (messages.size() < 2) {
-                    // Should not happen in a valid ReAct loop, but as a safeguard.
+                    // 正常情况下不应该出现，作为安全保护
                     throw new RuntimeException("Less than 2 messages in state when last message is ToolResponseMessage");
                 }
 
@@ -894,23 +926,27 @@ public class ReactAgent extends BaseAgent {
                     ToolResponseMessage toolResponseMessage = (ToolResponseMessage) lastMessage;
 
                     if (assistantMessage.hasToolCalls()) {
+                        // 获取 LLM 请求的所有工具调用 ID
                         Set<String> requestedToolIds = assistantMessage.getToolCalls().stream()
                                 .map(AssistantMessage.ToolCall::id)
                                 .collect(java.util.stream.Collectors.toSet());
 
+                        // 获取已执行完成的工具响应 ID
                         Set<String> executedToolIds = toolResponseMessage.getResponses().stream()
                                 .map(ToolResponseMessage.ToolResponse::id)
                                 .collect(java.util.stream.Collectors.toSet());
 
+                        // 判断所有请求的工具是否都已执行完成
                         if (executedToolIds.containsAll(requestedToolIds)) {
-                            return modelDestination; // All requested tools were executed or responded
+                            return modelDestination;  // 所有工具已完成 → 回到模型继续推理
                         } else {
-                            return AGENT_TOOL_NAME; // Some tools are still pending
+                            return AGENT_TOOL_NAME;   // 还有工具待执行 → 继续执行工具
                         }
                     }
                 }
             }
 
+            // 默认情况：结束执行
             return endDestination;
         };
     }
