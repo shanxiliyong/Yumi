@@ -9,14 +9,14 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# 检查是否提供了提交信息
+# 检查是否提供了提交信息，如果没有则使用默认值
 if [ -z "$1" ]; then
-    echo -e "${YELLOW}用法: $0 \"提交信息\"${NC}"
-    echo -e "${YELLOW}示例: $0 \"feat: 添加知识库管理功能\"${NC}"
-    exit 1
+    COMMIT_MESSAGE="chore: update $(date '+%Y-%m-%d %H:%M:%S')"
+    echo -e "${YELLOW}未提供提交信息，使用默认值: ${GREEN}$COMMIT_MESSAGE${NC}"
+    echo ""
+else
+    COMMIT_MESSAGE="$1"
 fi
-
-COMMIT_MESSAGE="$1"
 
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}  Git 提交并推送到所有 Remote${NC}"
