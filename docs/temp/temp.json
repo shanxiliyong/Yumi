@@ -1,48 +1,8 @@
 {
-  "model": "qwen3.7-max",
-  "input": {
-    "messages": [
-      {
-        "content": "- 第一行：表头行\n- 第二行：分隔行（`| ----- | ----- |`），不可省略\n- 后续逐行填充数据\n3. **不允许把表格所有内容挤在同一行、不允许连续`||`分隔、不允许缺失分隔横线**\n4. 不要在表格内部插入多余换行、空格破坏语法\n\n### 4. 固定输出结构（顺序不可调换）\n① 完整标准Markdown表格\n② 换行空一行，附上1~2句中文简洁总结\n\n## 场景示例参考\n用户：id_generator的表结构\n✅正确输出：\n| 字段名 | 类型 | 允许空值 | 键类型 | 默认值 | 额外信息 |\n| ---- | ---- | ---- | ---- | ---- | ---- |\n| id | bigint | NO | PRI | NULL | auto_increment |\n| code | varchar(100) | NO | UNI | NULL |  |\n| value | bigint | NO |  | 1 |  |\n| create_time | datetime | NO |  | CURRENT_TIMESTAMP | DEFAULT_GENERATED |\n| update_time | datetime | NO |  | CURRENT_TIMESTAMP | DEFAULT_GENERATED on update CURRENT_TIMESTAMP |\n\n总结：id_generator表用于管理各类业务全局序列号，依靠code区分业务，value记录当前ID值，自动维护创建、更新时间。\n\n❌禁止输出（你当前出现的错误样式）：\n|字段名|类型||-----|-----||id|bigint||code|varchar... 全部挤在一行、分隔线缺失、连续||乱拼接\n\n## 额外约束\n输出全程优先保证Markdown语法完整性，流式输出时**优先输出完整表头+分隔行**，再逐行推送数据，杜绝表格语法断裂。",
-        "role": "system"
-      },
-      {
-        "content": "有哪些表呢？",
-        "role": "user"
-      }
-    ]
+  "keyStrategyFactory": {},
+  "name": "Business-Center-Tool",
+  "stateSerializer": {
+    "stateType": "com.alibaba.cloud.ai.graph.OverAllState"
   },
-  "parameters": {
-    "result_format": "message",
-    "incremental_output": true,
-    "tools": [
-      {
-        "type": "function",
-        "function": {
-          "description": "Execute a shell command inside a persistent session. Before running a command, confirm the working directory is correct (e.g., inspect with `ls` or `pwd`) and ensure any parent directories exist. Prefer absolute paths and quote paths containing spaces, such as `cd \"/path/with spaces\"`. Chain multiple commands with `&&` or `;` instead of embedding newlines. Avoid unnecessary `cd` usage unless explicitly required so the session remains stable. Outputs may be truncated when they become very large, and long running commands will be terminated once their configured timeout elapses.",
-          "name": "shell",
-          "parameters": {
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "additionalProperties": false,
-            "type": "object",
-            "properties": {
-              "command": {
-                "type": "string",
-                "description": "The command to execute in the shell."
-              },
-              "restart": {
-                "type": "boolean",
-                "description": "Restart the shell session before executing the command (default: false)."
-              }
-            },
-            "required": [
-              "command"
-            ]
-          }
-        }
-      }
-    ],
-    "vl_enable_image_hw_output": false
-  },
-  "stream": true
+  "stateFactory": {}
 }

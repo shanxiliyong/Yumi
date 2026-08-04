@@ -654,6 +654,32 @@ public class ReactAgent extends BaseAgent {
         }
     }
 
+    /**
+     * 逆序连接 Model Hook 链
+     * <p>
+     * 该方法用于连接 AFTER_MODEL 类型的 Hook，由于这些 Hook 需要在 LLM 调用后按添加顺序执行，
+     * 但在图中需要从后往前连接，因此采用逆序连接策略。
+     * <p>
+     * 连接逻辑：
+     * <pre>
+     * 假设 hooks = [H1, H2, H3]，逆序连接后的图结构：
+     *
+     * defaultNext → H3.afterModel → H2.afterModel → H1.afterModel → modelDestination/endDestination
+     *
+     * 执行顺序（从前往后）：H1 → H2 → H3
+     * 连接顺序（从后往前）：H3 → H2 → H1
+     * </pre>
+     * <p>
+     * 每个 Hook 节点支持跳转到模型节点或结束节点（通过 canJumpTo 配置）。
+     *
+     * @param graph 状态图实例
+     * @param hooks Model Hook 列表
+     * @param nameSuffix 节点名称后缀（如 ".afterModel"）
+     * @param defaultNext 默认下一个节点名称（通常是 loopExitNode）
+     * @param modelDestination 模型节点目标名称
+     * @param endDestination 结束节点目标名称
+     * @throws GraphStateException 如果添加边时出现状态异常
+     */
     private static void chainModelHookReverse(
             StateGraph graph,
             List<Hook> hooks,
@@ -662,11 +688,13 @@ public class ReactAgent extends BaseAgent {
             String modelDestination,
             String endDestination) throws GraphStateException {
 
+        // 将默认下一个节点连接到最后一个 Hook（逆序的第一个）
         graph.addEdge(defaultNext, Hook.getFullHookName(hooks.get(hooks.size() - 1)) + nameSuffix);
 
+        // 逆序遍历 Hook 列表，将每个 Hook 连接到前一个 Hook
         for (int i = hooks.size() - 1; i > 0; i--) {
-            Hook m1 = hooks.get(i);
-            Hook m2 = hooks.get(i - 1);
+            Hook m1 = hooks.get(i);      // 当前 Hook（后面的）
+            Hook m2 = hooks.get(i - 1);  // 前一个 Hook（前面的）
             addHookEdge(graph,
                     Hook.getFullHookName(m1) + nameSuffix,
                     Hook.getFullHookName(m2) + nameSuffix,
@@ -753,6 +781,39 @@ public class ReactAgent extends BaseAgent {
         }
     }
 
+    /**
+     * 为 Hook 节点添加边连接
+     * <p>
+     * 该方法负责为 Hook 节点添加边连接，支持两种连接方式：
+     * 1. 条件边（Conditional Edges）- 当 Hook 支持跳转时，根据 jump_to 状态动态路由
+     * 2. 普通边（Simple Edge）- 当 Hook 不支持跳转时，直接连接到默认目标
+     * <p>
+     * 条件边路由逻辑：
+     * <pre>
+     * 1. 检查状态中的 jump_to 值
+     *    - 如果 jump_to 为 model → 跳转到模型节点
+     *    - 如果 jump_to 为 end → 跳转到结束节点
+     *    - 如果 jump_to 为 tool → 跳转到工具节点
+     *    - 如果 jump_to 为空或无效 → 跳转到默认目标
+     *
+     * 2. 注册可用的目标节点
+     *    - 默认目标始终可用
+     *    - 根据 canJumpTo 配置注册其他目标（end、tool、model）
+     * </pre>
+     * <p>
+     * 使用场景：
+     * - InterruptionHook：支持跳转到 end（人工介入后终止）
+     * - HumanInTheLoopHook：支持跳转到 model、end、tool（人工确认后继续或终止）
+     * - 自定义 Hook：可根据业务需求配置跳转目标
+     *
+     * @param graph 状态图实例
+     * @param name Hook 节点名称
+     * @param defaultDestination 默认目标节点名称
+     * @param modelDestination 模型节点目标名称
+     * @param endDestination 结束节点目标名称
+     * @param canJumpTo Hook 支持的跳转目标列表
+     * @throws GraphStateException 如果添加边时出现状态异常
+     */
     private static void addHookEdge(
             StateGraph graph,
             String name,
@@ -761,8 +822,11 @@ public class ReactAgent extends BaseAgent {
             String endDestination,
             List<JumpTo> canJumpTo) throws GraphStateException {
 
+        // 如果 Hook 支持跳转，添加条件边
         if (canJumpTo != null && !canJumpTo.isEmpty()) {
+            // 创建路由函数，根据 jump_to 状态决定下一个节点
             EdgeAction router = state -> {
+                // 从状态中获取 jump_to 值
                 Object jumpToValue = state.value("jump_to").orElse(null);
                 JumpTo jumpTo = null;
                 if (jumpToValue != null) {
@@ -772,12 +836,15 @@ public class ReactAgent extends BaseAgent {
                         jumpTo = JumpTo.fromStringOrNull((String) jumpToValue);
                     }
                 }
+                // 解析跳转目标
                 return resolveJump(jumpTo, modelDestination, endDestination, defaultDestination);
             };
 
+            // 注册可用的目标节点
             Map<String, String> destinations = new HashMap<>();
-            destinations.put(defaultDestination, defaultDestination);
+            destinations.put(defaultDestination, defaultDestination);  // 默认目标始终可用
 
+            // 根据 canJumpTo 配置注册其他目标
             if (canJumpTo.contains(JumpTo.end)) {
                 destinations.put(endDestination, endDestination);
             }
@@ -788,8 +855,10 @@ public class ReactAgent extends BaseAgent {
                 destinations.put(modelDestination, modelDestination);
             }
 
+            // 添加条件边，使用 edge_async 包装为异步边
             graph.addConditionalEdges(name, edge_async(router), destinations);
         } else {
+            // Hook 不支持跳转，添加普通边直接连接到默认目标
             graph.addEdge(name, defaultDestination);
         }
     }

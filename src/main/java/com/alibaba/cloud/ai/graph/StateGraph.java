@@ -32,6 +32,7 @@ import com.alibaba.cloud.ai.graph.serializer.plain_text.jackson.SpringAIJacksonS
 import com.alibaba.cloud.ai.graph.serializer.std.SpringAIStateSerializer;
 import com.alibaba.cloud.ai.graph.state.AgentStateFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -70,6 +71,7 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
  *   CompiledGraph compiled = graph.compile();
  * </pre>
  */
+@Slf4j
 public class StateGraph {
 
     /** 图结束节点标识符，表示工作流执行完毕 */
@@ -370,6 +372,7 @@ public class StateGraph {
      * exists
      */
     public StateGraph addEdge(String sourceId, String targetId) throws GraphStateException {
+        log.info("添加边  addEdge: {} {}", sourceId, targetId);
         if (Objects.equals(sourceId, END)) {
             throw Errors.invalidEdgeIdentifier.exception(END);
         }
@@ -420,6 +423,7 @@ public class StateGraph {
      */
     public StateGraph addConditionalEdges(String sourceId, AsyncCommandAction condition, Map<String, String> mappings)
             throws GraphStateException {
+        log.info("添加条件边  addConditionalEdges: {} {} {}", sourceId, condition, mappings);
         if (Objects.equals(sourceId, END)) {
             throw Errors.invalidEdgeIdentifier.exception(END);
         }
