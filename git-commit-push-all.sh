@@ -11,7 +11,7 @@ NC='\033[0m' # No Color
 
 # 检查是否提供了提交信息，如果没有则使用默认值
 if [ -z "$1" ]; then
-    COMMIT_MESSAGE="chore: update $(date '+%Y-%m-%d %H:%M:%S')"
+    COMMIT_MESSAGE="chore: 更新时间 $(date '+%Y-%m-%d %H:%M:%S')， 智能体建设"
     echo -e "${YELLOW}未提供提交信息，使用默认值: ${GREEN}$COMMIT_MESSAGE${NC}"
     echo ""
 else
