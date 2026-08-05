@@ -1061,6 +1061,34 @@ onMounted(() => {
   margin: 1em 0;
 }
 
+.bot-content :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 14px;
+}
+
+.bot-content :deep(th),
+.bot-content :deep(td) {
+  border: 1px solid #e4e7ed;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.bot-content :deep(th) {
+  background: #f5f7fa;
+  font-weight: 600;
+  color: #303133;
+}
+
+.bot-content :deep(tr:nth-child(even)) {
+  background: #fafafa;
+}
+
+.bot-content :deep(tr:hover) {
+  background: #f0f2f5;
+}
+
 .loading-indicator {
   display: flex;
   gap: 6px;
