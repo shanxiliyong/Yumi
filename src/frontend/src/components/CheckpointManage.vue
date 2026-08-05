@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { ElButton, ElSelect, ElOption, ElTable, ElTableColumn, ElMessage, ElTag, ElDialog, ElCard } from 'element-plus';
+import { ElButton, ElSelect, ElOption, ElTable, ElTableColumn, ElMessage, ElTag, ElDialog, ElCard, ElTooltip } from 'element-plus';
 
 const userId = ref(localStorage.getItem('userId') || '');
 const sessions = ref([]);
@@ -70,6 +70,54 @@ const getSessionLabel = (session) => {
   return `${session.name} (ID: ${session.sessionId})`;
 };
 
+const getMessageContent = (row, index) => {
+  if (!row.stateDataJson) return '';
+  
+  // 如果当前节点是 _AGENT_HOOK_Summarization.beforeModel，直接显示原文
+  if (row.nodeId === '_AGENT_HOOK_Summarization.beforeModel') {
+    return '原文';
+  }
+  
+  try {
+    const data = JSON.parse(row.stateDataJson);
+    const messages = data.messages || [];
+    
+    // 如果是第一条消息
+    if (index === 0) {
+      if (messages.length > 0) {
+        const msg = messages[messages.length - 1];
+        const type = msg.messageType || 'UNKNOWN';
+        const text = msg.text || '';
+        return `${type}：${text}`;
+      }
+      return '';
+    }
+    
+    // 如果不是第一条，和前面的数据比较
+    const prevRow = checkpoints.value[index - 1];
+    if (prevRow && prevRow.stateDataJson === row.stateDataJson) {
+      return '';
+    }
+    
+    // 不一致，显示最后一条消息
+    if (messages.length > 0) {
+      const msg = messages[messages.length - 1];
+      const type = msg.messageType || 'UNKNOWN';
+      const text = msg.text || '';
+      return `${type}：${text}`;
+    }
+    return '';
+  } catch {
+    return '';
+  }
+};
+
+const formatSnapshot = (jsonStr) => {
+  if (!jsonStr) return '';
+  if (jsonStr.length <= 20) return jsonStr;
+  return jsonStr.substring(0, 20) + '...';
+};
+
 onMounted(() => {
   loadSessions();
 });
@@ -103,9 +151,21 @@ onMounted(() => {
       </div>
       <ElTable :data="checkpoints" stripe style="width: 100%" v-loading="loading">
         <ElTableColumn prop="checkpointSeq" label="序号" width="80" />
-        <ElTableColumn prop="checkpointId" label="Checkpoint ID" width="300" show-overflow-tooltip />
+        <ElTableColumn prop="threadId" label="AgentId" width="250" show-overflow-tooltip />
         <ElTableColumn prop="nodeId" label="当前节点" width="180" show-overflow-tooltip />
         <ElTableColumn prop="nextNodeId" label="下一节点" width="180" show-overflow-tooltip />
+        <ElTableColumn label="消息内容" min-width="200" show-overflow-tooltip>
+          <template #default="{ row, $index }">
+            {{ getMessageContent(row, $index) }}
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="快照" min-width="300">
+          <template #default="{ row }">
+            <ElTooltip :content="row.stateDataJson" placement="top" :show-after="300">
+              <span>{{ formatSnapshot(row.stateDataJson) }}</span>
+            </ElTooltip>
+          </template>
+        </ElTableColumn>
         <ElTableColumn prop="savedAt" label="保存时间" width="180" />
         <ElTableColumn label="操作" width="100" fixed="right">
           <template #default="{ row }">
@@ -128,11 +188,11 @@ onMounted(() => {
     >
       <div v-if="selectedCheckpoint" class="detail-content">
         <div class="detail-row">
-          <span class="detail-label">Checkpoint ID:</span>
-          <span class="detail-value">{{ selectedCheckpoint.checkpointId }}</span>
+          <span class="detail-label">序号:</span>
+          <span class="detail-value">{{ selectedCheckpoint.checkpointSeq }}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Thread ID:</span>
+          <span class="detail-label">AgentId:</span>
           <span class="detail-value">{{ selectedCheckpoint.threadId }}</span>
         </div>
         <div class="detail-row">

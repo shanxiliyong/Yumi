@@ -71,6 +71,10 @@ const handleMenuSelect = (index) => {
             <ElIcon><DataAnalysis /></ElIcon>
             <template #title>Dashboard</template>
           </ElMenuItem>
+          <ElMenuItem index="checkpoint">
+            <ElIcon><DataAnalysis /></ElIcon>
+            <template #title>执行轨迹</template>
+          </ElMenuItem>
           <ElMenuItem index="digitalHuman">
             <ElIcon><Avatar /></ElIcon>
             <template #title>数字人管理</template>
@@ -86,10 +90,6 @@ const handleMenuSelect = (index) => {
           <ElMenuItem index="knowledge">
             <ElIcon><Collection /></ElIcon>
             <template #title>知识库管理</template>
-          </ElMenuItem>
-          <ElMenuItem index="checkpoint">
-            <ElIcon><DataAnalysis /></ElIcon>
-            <template #title>执行轨迹</template>
           </ElMenuItem>
         </ElMenu>
       </div>

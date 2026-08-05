@@ -6,14 +6,26 @@
 <mapper namespace="yumi.mapper.CheckpointMapper">
 
     <select id="selectByThreadIdOrderBySeq" resultType="yumi.entity.CheckpointEntity">
-        SELECT checkpoint_seq, checkpoint_id, thread_id, node_id, next_node_id, state_data, state_data_json, saved_at
+        SELECT checkpoint_seq AS checkpointSeq,
+               thread_id AS threadId,
+               node_id AS nodeId,
+               next_node_id AS nextNodeId,
+               state_data_json AS stateDataJson,
+               saved_at AS savedAt
         FROM GRAPH_CHECKPOINT
         WHERE thread_id = #{threadId}
         ORDER BY checkpoint_seq ASC
     </select>
 
     <select id="selectLatestByThreadId" resultType="yumi.entity.CheckpointEntity">
-        SELECT checkpoint_seq, checkpoint_id, thread_id, node_id, next_node_id, state_data, state_data_json, saved_at
+        SELECT checkpoint_seq AS checkpointSeq,
+               checkpoint_id AS checkpointId,
+               thread_id AS threadId,
+               node_id AS nodeId,
+               next_node_id AS nextNodeId,
+               state_data AS stateData,
+               state_data_json AS stateDataJson,
+               saved_at AS savedAt
         FROM GRAPH_CHECKPOINT
         WHERE thread_id = #{threadId}
         ORDER BY checkpoint_seq DESC
