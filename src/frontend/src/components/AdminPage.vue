@@ -18,6 +18,7 @@ import SkillManage from './SkillManage.vue';
 import ToolManage from './ToolManage.vue';
 import DashboardPage from './DashboardPage.vue';
 import KnowledgeManage from './KnowledgeManage.vue';
+import CheckpointManage from './CheckpointManage.vue';
 
 const props = defineProps(['username']);
 const emit = defineEmits(['logout', 'navigate']);
@@ -86,6 +87,10 @@ const handleMenuSelect = (index) => {
             <ElIcon><Collection /></ElIcon>
             <template #title>知识库管理</template>
           </ElMenuItem>
+          <ElMenuItem index="checkpoint">
+            <ElIcon><DataAnalysis /></ElIcon>
+            <template #title>执行轨迹</template>
+          </ElMenuItem>
         </ElMenu>
       </div>
 
@@ -108,7 +113,7 @@ const handleMenuSelect = (index) => {
       <!-- 顶部栏 -->
       <div class="admin-header">
         <div class="header-left">
-          <span class="breadcrumb">首页 / {{ activeMenu === 'dashboard' ? 'Dashboard' : activeMenu === 'knowledge' ? '知识库管理' : activeMenu === 'digitalHuman' ? '数字人管理' : activeMenu === 'skill' ? 'Skill 管理' : 'Tool 管理' }}</span>
+          <span class="breadcrumb">首页 / {{ activeMenu === 'dashboard' ? 'Dashboard' : activeMenu === 'knowledge' ? '知识库管理' : activeMenu === 'digitalHuman' ? '数字人管理' : activeMenu === 'skill' ? 'Skill 管理' : activeMenu === 'tool' ? 'Tool 管理' : '执行轨迹' }}</span>
         </div>
         <div class="header-right">
           <ElButton class="back-btn" @click="goBack">
@@ -141,6 +146,7 @@ const handleMenuSelect = (index) => {
         <DigitalHumanManage v-else-if="activeMenu === 'digitalHuman'" :username="props.username" />
         <SkillManage v-else-if="activeMenu === 'skill'" :username="props.username" />
         <ToolManage v-else-if="activeMenu === 'tool'" :username="props.username" />
+        <CheckpointManage v-else-if="activeMenu === 'checkpoint'" />
       </div>
     </div>
   </div>
