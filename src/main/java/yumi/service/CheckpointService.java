@@ -58,7 +58,7 @@ public class CheckpointService {
                 content = extractMessageText(lastMsg);
             }
 
-            if (currentIndex > 0) {
+            if (currentIndex == 0) {
                 if (type != null && content != null) {
                     return type.toUpperCase() + "：" + content;
                 }
