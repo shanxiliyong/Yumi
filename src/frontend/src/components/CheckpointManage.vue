@@ -150,10 +150,9 @@ onMounted(() => {
         <h3>执行轨迹 (共 {{ checkpoints.length }} 条)</h3>
       </div>
       <ElTable :data="checkpoints" stripe style="width: 100%" v-loading="loading">
-        <ElTableColumn prop="checkpointSeq" label="序号" width="80" />
-        <ElTableColumn prop="threadId" label="AgentId" width="250" show-overflow-tooltip />
-        <ElTableColumn prop="nodeId" label="当前节点" width="180" show-overflow-tooltip />
-        <ElTableColumn prop="nextNodeId" label="下一节点" width="180" show-overflow-tooltip />
+        <ElTableColumn prop="checkpointSeq" label="序号" width="60" />
+        <ElTableColumn prop="threadId" label="AgentId" width="230" show-overflow-tooltip />
+        <ElTableColumn prop="nodeId" label="当前节点" width="350" show-overflow-tooltip />
         <ElTableColumn label="消息内容" min-width="200" show-overflow-tooltip>
           <template #default="{ row, $index }">
             {{ getMessageContent(row, $index) }}
