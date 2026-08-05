@@ -135,6 +135,12 @@ onMounted(() => {
           </template>
         </ElTableColumn>
 
+        <ElTableColumn label="耗时(ms)" width="100">
+          <template #default="{ row }">
+            {{ row.duration ?? 0 }}
+          </template>
+        </ElTableColumn>
+
         <ElTableColumn label="保存时间" width="180">
           <template #default="{ row }">
             {{ formatSavedAt(row.savedAt) }}

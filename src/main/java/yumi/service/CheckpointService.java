@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import yumi.entity.CheckpointEntity;
 import yumi.mapper.CheckpointMapper;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Slf4j
@@ -37,7 +38,19 @@ public class CheckpointService {
             String messageContent = extractMessageContent(nodeId, stateDataJson, i, list);
             checkpoint.setMessageContent(messageContent);
 
-
+            // 计算耗时（毫秒）
+            if (i == 0) {
+                checkpoint.setDuration(0L);
+            } else {
+                LocalDateTime prevSavedAt = list.get(i - 1).getSavedAt();
+                LocalDateTime currSavedAt = checkpoint.getSavedAt();
+                if (prevSavedAt != null && currSavedAt != null) {
+                    long duration = java.time.Duration.between(prevSavedAt, currSavedAt).toMillis();
+                    checkpoint.setDuration(duration);
+                } else {
+                    checkpoint.setDuration(0L);
+                }
+            }
         }
     }
 
