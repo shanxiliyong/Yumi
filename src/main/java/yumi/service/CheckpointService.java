@@ -48,15 +48,11 @@ public class CheckpointService {
             JsonNode root = objectMapper.readTree(stateDataJson);
             JsonNode messagesNode = findMessagesNodeRecursive(root);
 
-            String type = null;
-            String content = null;
+            String formattedMessage = "无";
             if (messagesNode != null && messagesNode.isArray() && messagesNode.size() > 0) {
                 JsonNode lastMsg = messagesNode.get(messagesNode.size() - 1);
-                type = extractMessageType(lastMsg);
-                content = extractMessageText(lastMsg);
+                formattedMessage = formatSingleMessage(lastMsg);
             }
-
-            String formattedMessage = (type != null && content != null) ? type.toUpperCase() + "：" + content : "无";
 
             // 第一条记录：直接返回消息内容
             if (currentIndex == 0) {
@@ -82,6 +78,66 @@ public class CheckpointService {
             log.warn("解析消息内容失败", e);
         }
         return "无";
+    }
+
+    private String formatSingleMessage(JsonNode msgNode) {
+        if (msgNode == null || msgNode.isNull()) return "无";
+
+        String messageType = extractMessageType(msgNode);
+        if (messageType == null) return "无";
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("角色：").append(messageType).append("\n");
+
+        switch (messageType.toUpperCase()) {
+            case "USER":
+                String userText = extractMessageText(msgNode);
+                sb.append("内容：").append(userText != null ? userText : "无");
+                break;
+
+            case "ASSISTANT":
+                // 提取 toolCalls
+                if (msgNode.has("toolCalls") && msgNode.get("toolCalls").isArray()) {
+                    sb.append("工具调用：");
+                    JsonNode toolCalls = msgNode.get("toolCalls");
+                    for (int i = 0; i < toolCalls.size(); i++) {
+                        JsonNode toolCall = toolCalls.get(i);
+                        String toolName = toolCall.has("name") ? toolCall.get("name").asText() : "unknown";
+                        String toolArgs = toolCall.has("arguments") ? toolCall.get("arguments").asText() : "";
+                        sb.append(toolName).append("(").append(toolArgs).append(")");
+                        if (i < toolCalls.size() - 1) sb.append(", ");
+                    }
+                    sb.append("\n");
+                }
+                // 提取 text 内容
+                String assistantText = extractMessageText(msgNode);
+                sb.append("内容：").append(assistantText != null && !assistantText.isEmpty() ? assistantText : "无");
+                break;
+
+            case "TOOL":
+                // 提取 responses
+                if (msgNode.has("responses") && msgNode.get("responses").isArray()) {
+                    sb.append("工具响应：");
+                    JsonNode responses = msgNode.get("responses");
+                    for (int i = 0; i < responses.size(); i++) {
+                        JsonNode response = responses.get(i);
+                        String toolName = response.has("name") ? response.get("name").asText() : "unknown";
+                        String responseData = response.has("responseData") ? response.get("responseData").asText() : "";
+                        sb.append(toolName).append(": ").append(responseData);
+                        if (i < responses.size() - 1) sb.append("\n");
+                    }
+                } else {
+                    sb.append("内容：无");
+                }
+                break;
+
+            default:
+                String defaultText = extractMessageText(msgNode);
+                sb.append("内容：").append(defaultText != null ? defaultText : "无");
+                break;
+        }
+
+        return sb.toString();
     }
 
     private String extractMessageType(JsonNode msgNode) {
