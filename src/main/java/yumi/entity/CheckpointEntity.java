@@ -37,7 +37,8 @@ public class CheckpointEntity {
     @TableField(exist = false)
     private String messageContent;
 
-
+    @TableField(exist = false)
+    private Long duration;
 
     public CheckpointEntity() {}
 
@@ -113,5 +114,11 @@ public class CheckpointEntity {
         this.messageContent = messageContent;
     }
 
+    public Long getDuration() {
+        return duration;
+    }
 
+    public void setDuration(Long duration) {
+        this.duration = duration;
+    }
 }

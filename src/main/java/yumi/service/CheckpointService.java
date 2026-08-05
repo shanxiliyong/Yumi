@@ -87,7 +87,7 @@ public class CheckpointService {
         if (messageType == null) return "无";
 
         StringBuilder sb = new StringBuilder();
-        sb.append("角色：").append(messageType).append("\n");
+        sb.append("角色：").append(messageType).append("<br/>");
 
         switch (messageType.toUpperCase()) {
             case "USER":
@@ -107,7 +107,7 @@ public class CheckpointService {
                         sb.append(toolName).append("(").append(toolArgs).append(")");
                         if (i < toolCalls.size() - 1) sb.append(", ");
                     }
-                    sb.append("\n");
+                    sb.append("<br/>");
                 }
                 // 提取 text 内容
                 String assistantText = extractMessageText(msgNode);
@@ -124,7 +124,7 @@ public class CheckpointService {
                         String toolName = response.has("name") ? response.get("name").asText() : "unknown";
                         String responseData = response.has("responseData") ? response.get("responseData").asText() : "";
                         sb.append(toolName).append(": ").append(responseData);
-                        if (i < responses.size() - 1) sb.append("\n");
+                        if (i < responses.size() - 1) sb.append("<br/>");
                     }
                 } else {
                     sb.append("内容：无");

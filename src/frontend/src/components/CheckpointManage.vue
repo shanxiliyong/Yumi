@@ -127,7 +127,7 @@ onMounted(() => {
         <ElTableColumn label="消息内容" min-width="250">
           <template #default="{ row }">
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span>{{ getMessageContent(row) }}</span>
+              <span v-html="getMessageContent(row)"></span>
               <ElTag v-if="getSnapshotStatus(row)" :type="getSnapshotStatus(row) === '未压缩' ? 'warning' : 'success'" size="small">
                 {{ getSnapshotStatus(row) }}
               </ElTag>
