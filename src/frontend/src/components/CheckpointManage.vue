@@ -70,46 +70,12 @@ const getSessionLabel = (session) => {
   return `${session.name} (ID: ${session.sessionId})`;
 };
 
-const getMessageContent = (row, index) => {
-  if (!row.stateDataJson) return '';
-  
-  // 如果当前节点是 _AGENT_HOOK_Summarization.beforeModel，直接显示原文
-  if (row.nodeId === '_AGENT_HOOK_Summarization.beforeModel') {
-    return '原文';
-  }
-  
-  try {
-    const data = JSON.parse(row.stateDataJson);
-    const messages = data.messages || [];
-    
-    // 如果是第一条消息
-    if (index === 0) {
-      if (messages.length > 0) {
-        const msg = messages[messages.length - 1];
-        const type = msg.messageType || 'UNKNOWN';
-        const text = msg.text || '';
-        return `${type}：${text}`;
-      }
-      return '';
-    }
-    
-    // 如果不是第一条，和前面的数据比较
-    const prevRow = checkpoints.value[index - 1];
-    if (prevRow && prevRow.stateDataJson === row.stateDataJson) {
-      return '';
-    }
-    
-    // 不一致，显示最后一条消息
-    if (messages.length > 0) {
-      const msg = messages[messages.length - 1];
-      const type = msg.messageType || 'UNKNOWN';
-      const text = msg.text || '';
-      return `${type}：${text}`;
-    }
-    return '';
-  } catch {
-    return '';
-  }
+const getMessageContent = (row) => {
+  return row.messageContent || '';
+};
+
+const getSnapshotStatus = (row) => {
+  return row.snapshotStatus || '';
 };
 
 const formatSnapshot = (jsonStr) => {
@@ -121,17 +87,6 @@ const formatSnapshot = (jsonStr) => {
 const formatSavedAt = (timeStr) => {
   if (!timeStr) return '';
   return timeStr.replace('T', ' ');
-};
-
-const getSnapshotStatus = (row, index) => {
-  if (row.nodeId === '_AGENT_HOOK_Summarization.beforeModel') {
-    const prevRow = checkpoints.value[index - 1];
-    if (prevRow && prevRow.stateDataJson === row.stateDataJson) {
-      return '未压缩';
-    }
-    return '压缩';
-  }
-  return '';
 };
 
 onMounted(() => {
@@ -170,11 +125,11 @@ onMounted(() => {
         <ElTableColumn prop="threadId" label="AgentId" min-width="200" />
         <ElTableColumn prop="nodeId" label="当前节点" min-width="200" />
         <ElTableColumn label="消息内容" min-width="250">
-          <template #default="{ row, $index }">
+          <template #default="{ row }">
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span>{{ getMessageContent(row, $index) }}</span>
-              <ElTag v-if="getSnapshotStatus(row, $index)" :type="getSnapshotStatus(row, $index) === '未压缩' ? 'warning' : 'success'" size="small">
-                {{ getSnapshotStatus(row, $index) }}
+              <span>{{ getMessageContent(row) }}</span>
+              <ElTag v-if="getSnapshotStatus(row)" :type="getSnapshotStatus(row) === '未压缩' ? 'warning' : 'success'" size="small">
+                {{ getSnapshotStatus(row) }}
               </ElTag>
             </div>
           </template>

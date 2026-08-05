@@ -20,7 +20,90 @@ public class CheckpointService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public List<CheckpointEntity> getAllByThreadId(String threadId) {
-        return checkpointMapper.selectByThreadIdOrderBySeq(threadId);
+        List<CheckpointEntity> list = checkpointMapper.selectByThreadIdOrderBySeq(threadId);
+        processCheckpoints(list);
+        return list;
+    }
+
+    private void processCheckpoints(List<CheckpointEntity> list) {
+        if (list == null || list.isEmpty()) return;
+        
+        for (int i = 0; i < list.size(); i++) {
+            CheckpointEntity checkpoint = list.get(i);
+            String stateDataJson = checkpoint.getStateDataJson();
+            String nodeId = checkpoint.getNodeId();
+            
+            // 解析消息内容
+            String messageContent = extractMessageContent(stateDataJson);
+            checkpoint.setMessageContent(messageContent);
+            
+            // 解析快照状态
+            String snapshotStatus = extractSnapshotStatus(nodeId, stateDataJson, i, list);
+            checkpoint.setSnapshotStatus(snapshotStatus);
+        }
+    }
+
+    private String extractMessageContent(String stateDataJson) {
+        if (stateDataJson == null || stateDataJson.trim().isEmpty()) return "";
+        
+        try {
+            JsonNode root = objectMapper.readTree(stateDataJson);
+            JsonNode messagesNode = findMessagesNodeRecursive(root);
+            
+            if (messagesNode != null && messagesNode.isArray() && messagesNode.size() > 0) {
+                JsonNode lastMsg = messagesNode.get(messagesNode.size() - 1);
+                String type = extractMessageType(lastMsg);
+                String content = extractMessageText(lastMsg);
+                
+                if (type != null && content != null) {
+                    return type.toUpperCase() + "：" + content;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("解析消息内容失败", e);
+        }
+        return "";
+    }
+
+    private String extractMessageType(JsonNode msgNode) {
+        if (msgNode == null || msgNode.isNull()) return null;
+        
+        if (msgNode.has("messageType") && msgNode.get("messageType").isTextual()) {
+            return msgNode.get("messageType").asText();
+        }
+        if (msgNode.has("type") && msgNode.get("type").isTextual()) {
+            return msgNode.get("type").asText();
+        }
+        if (msgNode.has("role") && msgNode.get("role").isTextual()) {
+            return msgNode.get("role").asText();
+        }
+        return null;
+    }
+
+    private String extractMessageText(JsonNode msgNode) {
+        if (msgNode == null || msgNode.isNull()) return null;
+        
+        if (msgNode.has("text") && msgNode.get("text").isTextual()) {
+            return msgNode.get("text").asText();
+        }
+        if (msgNode.has("content") && msgNode.get("content").isTextual()) {
+            return msgNode.get("content").asText();
+        }
+        return null;
+    }
+
+    private String extractSnapshotStatus(String nodeId, String stateDataJson, int currentIndex, List<CheckpointEntity> list) {
+        if (!"_AGENT_HOOK_Summarization.beforeModel".equals(nodeId)) {
+            return "";
+        }
+        
+        if (currentIndex > 0) {
+            CheckpointEntity prevCheckpoint = list.get(currentIndex - 1);
+            if (stateDataJson != null && stateDataJson.equals(prevCheckpoint.getStateDataJson())) {
+                return "未压缩";
+            }
+        }
+        return "压缩";
     }
 
     public CheckpointEntity getLatestByThreadId(String threadId) {

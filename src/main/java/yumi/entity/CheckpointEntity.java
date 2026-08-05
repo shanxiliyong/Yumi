@@ -34,6 +34,12 @@ public class CheckpointEntity {
     @TableField("saved_at")
     private LocalDateTime savedAt;
 
+    @TableField(exist = false)
+    private String messageContent;
+
+    @TableField(exist = false)
+    private String snapshotStatus;
+
     public CheckpointEntity() {}
 
     public Long getCheckpointSeq() {
@@ -98,5 +104,21 @@ public class CheckpointEntity {
 
     public void setSavedAt(LocalDateTime savedAt) {
         this.savedAt = savedAt;
+    }
+
+    public String getMessageContent() {
+        return messageContent;
+    }
+
+    public void setMessageContent(String messageContent) {
+        this.messageContent = messageContent;
+    }
+
+    public String getSnapshotStatus() {
+        return snapshotStatus;
+    }
+
+    public void setSnapshotStatus(String snapshotStatus) {
+        this.snapshotStatus = snapshotStatus;
     }
 }
