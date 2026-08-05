@@ -27,47 +27,70 @@ public class CheckpointService {
 
     private void processCheckpoints(List<CheckpointEntity> list) {
         if (list == null || list.isEmpty()) return;
-        
+
         for (int i = 0; i < list.size(); i++) {
             CheckpointEntity checkpoint = list.get(i);
             String stateDataJson = checkpoint.getStateDataJson();
             String nodeId = checkpoint.getNodeId();
-            
+
             // 解析消息内容
-            String messageContent = extractMessageContent(stateDataJson);
+            String messageContent = extractMessageContent(nodeId, stateDataJson, i, list);
             checkpoint.setMessageContent(messageContent);
-            
-            // 解析快照状态
-            String snapshotStatus = extractSnapshotStatus(nodeId, stateDataJson, i, list);
-            checkpoint.setSnapshotStatus(snapshotStatus);
+
+
         }
     }
 
-    private String extractMessageContent(String stateDataJson) {
-        if (stateDataJson == null || stateDataJson.trim().isEmpty()) return "";
-        
+    private String extractMessageContent(String nodeId, String stateDataJson, int currentIndex, List<CheckpointEntity> list) {
+        var messageContent = "无";
+        if (stateDataJson == null || stateDataJson.trim().isEmpty()) return messageContent;
+
         try {
+            String type = null;
+            String content = null;
+
             JsonNode root = objectMapper.readTree(stateDataJson);
             JsonNode messagesNode = findMessagesNodeRecursive(root);
-            
+
             if (messagesNode != null && messagesNode.isArray() && messagesNode.size() > 0) {
                 JsonNode lastMsg = messagesNode.get(messagesNode.size() - 1);
-                String type = extractMessageType(lastMsg);
-                String content = extractMessageText(lastMsg);
-                
+                type = extractMessageType(lastMsg);
+                content = extractMessageText(lastMsg);
+            }
+
+            if (currentIndex > 0) {
                 if (type != null && content != null) {
                     return type.toUpperCase() + "：" + content;
                 }
+            } else {
+                String preStateDataJson = list.get(currentIndex - 1).getStateDataJson();
+                if ("_AGENT_HOOK_Summarization.beforeModel".equals(nodeId)) {
+                    if (stateDataJson.equals(preStateDataJson)) {
+                        return "未压缩";
+                    } else {
+                        return "压缩";
+                    }
+                } else {
+                    if (stateDataJson.equals(preStateDataJson)) {
+                        return messageContent;
+                    } else {
+                        if (type != null && content != null) {
+                            return type.toUpperCase() + "：" + content;
+                        }
+
+                    }
+                }
             }
-        } catch (Exception e) {
+        } catch (
+                Exception e) {
             log.warn("解析消息内容失败", e);
         }
-        return "";
+        return messageContent;
     }
 
     private String extractMessageType(JsonNode msgNode) {
         if (msgNode == null || msgNode.isNull()) return null;
-        
+
         if (msgNode.has("messageType") && msgNode.get("messageType").isTextual()) {
             return msgNode.get("messageType").asText();
         }
@@ -82,7 +105,7 @@ public class CheckpointService {
 
     private String extractMessageText(JsonNode msgNode) {
         if (msgNode == null || msgNode.isNull()) return null;
-        
+
         if (msgNode.has("text") && msgNode.get("text").isTextual()) {
             return msgNode.get("text").asText();
         }
@@ -96,7 +119,7 @@ public class CheckpointService {
         if (!"_AGENT_HOOK_Summarization.beforeModel".equals(nodeId)) {
             return "";
         }
-        
+
         if (currentIndex > 0) {
             CheckpointEntity prevCheckpoint = list.get(currentIndex - 1);
             if (stateDataJson != null && stateDataJson.equals(prevCheckpoint.getStateDataJson())) {
@@ -176,8 +199,8 @@ public class CheckpointService {
             JsonNode child = node.get(name);
             String typeInfo = child.isArray() ? "(array," + child.size() + ")"
                     : child.isObject() ? "(object)"
-                    : child.isTextual() ? "(text:" + child.asText().replace("\n", "\\n").substring(0, Math.min(50, child.asText().length())) + ")"
-                    : "(" + child.getNodeType() + ")";
+                      : child.isTextual() ? "(text:" + child.asText().replace("\n", "\\n").substring(0, Math.min(50, child.asText().length())) + ")"
+                        : "(" + child.getNodeType() + ")";
             names.add(name + typeInfo);
         }
         return String.join(", ", names);

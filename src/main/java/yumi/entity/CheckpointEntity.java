@@ -37,8 +37,7 @@ public class CheckpointEntity {
     @TableField(exist = false)
     private String messageContent;
 
-    @TableField(exist = false)
-    private String snapshotStatus;
+
 
     public CheckpointEntity() {}
 
@@ -114,11 +113,5 @@ public class CheckpointEntity {
         this.messageContent = messageContent;
     }
 
-    public String getSnapshotStatus() {
-        return snapshotStatus;
-    }
 
-    public void setSnapshotStatus(String snapshotStatus) {
-        this.snapshotStatus = snapshotStatus;
-    }
 }
