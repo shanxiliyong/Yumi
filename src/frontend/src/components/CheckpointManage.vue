@@ -114,8 +114,24 @@ const getMessageContent = (row, index) => {
 
 const formatSnapshot = (jsonStr) => {
   if (!jsonStr) return '';
-  if (jsonStr.length <= 20) return jsonStr;
-  return jsonStr.substring(0, 20) + '...';
+  if (jsonStr.length <= 80) return jsonStr;
+  return jsonStr.substring(0, 80) + '...';
+};
+
+const formatSavedAt = (timeStr) => {
+  if (!timeStr) return '';
+  return timeStr.replace('T', ' ');
+};
+
+const getSnapshotStatus = (row, index) => {
+  if (row.nodeId === '_AGENT_HOOK_Summarization.beforeModel') {
+    const prevRow = checkpoints.value[index - 1];
+    if (prevRow && prevRow.stateDataJson === row.stateDataJson) {
+      return '未压缩';
+    }
+    return '压缩';
+  }
+  return '';
 };
 
 onMounted(() => {
@@ -151,21 +167,33 @@ onMounted(() => {
       </div>
       <ElTable :data="checkpoints" stripe style="width: 100%" v-loading="loading">
         <ElTableColumn prop="checkpointSeq" label="序号" width="60" />
-        <ElTableColumn prop="threadId" label="AgentId" width="230" show-overflow-tooltip />
-        <ElTableColumn prop="nodeId" label="当前节点" width="350" show-overflow-tooltip />
-        <ElTableColumn label="消息内容" min-width="200" show-overflow-tooltip>
+        <ElTableColumn prop="threadId" label="AgentId" min-width="200" />
+        <ElTableColumn prop="nodeId" label="当前节点" min-width="200" />
+        <ElTableColumn label="消息内容" min-width="250">
           <template #default="{ row, $index }">
-            {{ getMessageContent(row, $index) }}
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span>{{ getMessageContent(row, $index) }}</span>
+              <ElTag v-if="getSnapshotStatus(row, $index)" :type="getSnapshotStatus(row, $index) === '未压缩' ? 'warning' : 'success'" size="small">
+                {{ getSnapshotStatus(row, $index) }}
+              </ElTag>
+            </div>
           </template>
         </ElTableColumn>
+
+        <ElTableColumn label="保存时间" width="180">
+          <template #default="{ row }">
+            {{ formatSavedAt(row.savedAt) }}
+          </template>
+        </ElTableColumn>
+
         <ElTableColumn label="快照" min-width="300">
           <template #default="{ row }">
-            <ElTooltip :content="row.stateDataJson" placement="top" :show-after="300">
+            <ElTooltip :content="row.stateDataJson" placement="top" :show-after="100">
               <span>{{ formatSnapshot(row.stateDataJson) }}</span>
             </ElTooltip>
           </template>
         </ElTableColumn>
-        <ElTableColumn prop="savedAt" label="保存时间" width="180" />
+    
         <ElTableColumn label="操作" width="100" fixed="right">
           <template #default="{ row }">
             <ElButton type="primary" link size="small" @click="viewDetail(row)">详情</ElButton>
@@ -245,6 +273,11 @@ onMounted(() => {
   font-size: 16px;
   font-weight: 600;
   color: #303133;
+}
+
+:deep(.el-table .el-table__cell) {
+  white-space: normal;
+  word-break: break-all;
 }
 
 .empty-state {
