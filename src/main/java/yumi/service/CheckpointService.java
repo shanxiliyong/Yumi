@@ -42,50 +42,46 @@ public class CheckpointService {
     }
 
     private String extractMessageContent(String nodeId, String stateDataJson, int currentIndex, List<CheckpointEntity> list) {
-        var messageContent = "无";
-        if (stateDataJson == null || stateDataJson.trim().isEmpty()) return messageContent;
+        if (stateDataJson == null || stateDataJson.trim().isEmpty()) return "无";
 
         try {
-            String type = null;
-            String content = null;
-
             JsonNode root = objectMapper.readTree(stateDataJson);
             JsonNode messagesNode = findMessagesNodeRecursive(root);
 
+            String type = null;
+            String content = null;
             if (messagesNode != null && messagesNode.isArray() && messagesNode.size() > 0) {
                 JsonNode lastMsg = messagesNode.get(messagesNode.size() - 1);
                 type = extractMessageType(lastMsg);
                 content = extractMessageText(lastMsg);
             }
 
-            if (currentIndex == 0) {
-                if (type != null && content != null) {
-                    return type.toUpperCase() + "：" + content;
-                }
-            } else {
-                String preStateDataJson = list.get(currentIndex - 1).getStateDataJson();
-                if ("_AGENT_HOOK_Summarization.beforeModel".equals(nodeId)) {
-                    if (stateDataJson.equals(preStateDataJson)) {
-                        return "未压缩";
-                    } else {
-                        return "压缩";
-                    }
-                } else {
-                    if (stateDataJson.equals(preStateDataJson)) {
-                        return messageContent;
-                    } else {
-                        if (type != null && content != null) {
-                            return type.toUpperCase() + "：" + content;
-                        }
+            String formattedMessage = (type != null && content != null) ? type.toUpperCase() + "：" + content : "无";
 
-                    }
-                }
+            // 第一条记录：直接返回消息内容
+            if (currentIndex == 0) {
+                return formattedMessage;
             }
-        } catch (
-                Exception e) {
+
+            // 后续记录：与前一条比较
+            String preStateDataJson = list.get(currentIndex - 1).getStateDataJson();
+            if (stateDataJson.equals(preStateDataJson)) {
+                // 数据未变化
+                if ("_AGENT_HOOK_Summarization.beforeModel".equals(nodeId)) {
+                    return "未压缩";
+                }
+                return "无";
+            }
+
+            // 数据发生变化
+            if ("_AGENT_HOOK_Summarization.beforeModel".equals(nodeId)) {
+                return "压缩";
+            }
+            return formattedMessage;
+        } catch (Exception e) {
             log.warn("解析消息内容失败", e);
         }
-        return messageContent;
+        return "无";
     }
 
     private String extractMessageType(JsonNode msgNode) {
