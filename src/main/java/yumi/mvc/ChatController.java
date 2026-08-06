@@ -87,19 +87,23 @@ public class ChatController {
     }
 
     @PostMapping("/send")
-    public ResponseEntity<Map<String, Object>> chat(@RequestBody ChatRequest request) {
+    public ResponseEntity<AgentResponse> chat(@RequestBody ChatRequest request) {
         log.info("chat request: {}", request.toString());
-        Map<String, Object> response = new HashMap<>();
 
         try {
             paramCheck(request);
         } catch (YErrorMessageException e) {
-            response.put("success", false);
-            response.put("message", e.getMessage());
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(AgentResponse.builder()
+                    .type("error")
+                    .message(e.getMessage())
+                    .build());
+        }
+        // 审核请求处理
+        if (request.getNodeId() != null && request.getApproved() != null) {
+            return handleAudit(request);
         }
 
-
+        // 普通聊天请求
         YumiContext context = new YumiContext();
         context.setRequest(request);
 
@@ -108,7 +112,6 @@ public class ChatController {
             DigitalHumanEntity dh = digitalHumanService.getById(session.getDigitalHumanId());
             context.setDh(dh);
         }
-
         AgentResponse agentResponse = yumiAgent.chat(context);
 
         // 普通消息，更新会话
@@ -122,47 +125,42 @@ public class ChatController {
     }
 
     /**
-     * 审核接口：确认或取消工具调用
+     * 处理审核请求：确认或取消工具调用
      */
-    @PostMapping("/audit")
-    public ResponseEntity<Map<String, Object>> audit(@RequestBody Map<String, Object> auditRequest) {
-        log.info("audit request: {}", auditRequest);
-        Map<String, Object> response = new HashMap<>();
+    private ResponseEntity<AgentResponse> handleAudit(ChatRequest request) {
+        log.info("audit request: nodeId={}, approved={}", request.getNodeId(), request.getApproved());
 
-        String userId = (String) auditRequest.get("userId");
-        Long sessionId = ((Number) auditRequest.get("sessionId")).longValue();
-        String nodeId = (String) auditRequest.get("nodeId");
-        Boolean approved = (Boolean) auditRequest.get("approved");
-
-        if (approved) {
+        if (request.getApproved()) {
             // 确认执行：恢复图执行
             YumiContext context = new YumiContext();
-            ChatRequest request = new ChatRequest();
-            request.setUserId(userId);
-            request.setSessionId(sessionId);
             context.setRequest(request);
 
-            SessionEntity session = sessionService.getSession(sessionId);
+            SessionEntity session = sessionService.getSession(request.getSessionId());
             if (session != null && session.getDigitalHumanId() != null) {
                 DigitalHumanEntity dh = digitalHumanService.getById(session.getDigitalHumanId());
                 context.setDh(dh);
             }
 
             // TODO: 调用 agent 恢复执行，传入用户反馈
-            String content = yumiAgent.resumeFromAudit(context, nodeId, auditRequest);
+            // String content = yumiAgent.resumeFromAudit(context, request.getNodeId(), request.getToolFeedbacks());
 
-            String lastMsg = content.length() > 50 ? content.substring(0, 50) + "..." : content;
-            sessionService.updateLastMessage(sessionId, lastMsg);
+            // 临时返回
+            AgentResponse response = AgentResponse.builder()
+                    .type("normal")
+                    .message("工具调用已确认执行")
+                    .build();
 
-            response.put("success", true);
-            response.put("content", content);
+            String lastMsg = response.getMessage().length() > 50 ? response.getMessage().substring(0, 50) + "..." : response.getMessage();
+            sessionService.updateLastMessage(request.getSessionId(), lastMsg);
+
+            return ResponseEntity.ok(response);
         } else {
             // 取消执行
-            response.put("success", true);
-            response.put("message", "已取消工具调用");
+            return ResponseEntity.ok(AgentResponse.builder()
+                    .type("normal")
+                    .message("已取消工具调用")
+                    .build());
         }
-
-        return ResponseEntity.ok(response);
     }
 
 

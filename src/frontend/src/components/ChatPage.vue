@@ -393,19 +393,19 @@ const handleAuditApprove = async () => {
     const requestBody = {
       userId: userId.value,
       sessionId: sessionId.value,
-      nodeId: auditData.value.nodeId,
+      nodeId: auditData.value.extraInfo?.nodeId,
       approved: true,
-      toolFeedbacks: auditData.value.toolFeedbacks
+      toolFeedbacks: auditData.value.confirmInfo
     }
-    const response = await fetch('/api/chat/audit', {
+    const response = await fetch('/api/chat/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody)
     })
     const data = await response.json()
     showAuditDialog.value = false
-    if (data.success) {
-      messages.value.push({ id: Date.now() + 2, type: 'bot', content: data.content })
+    if (data.type === 'normal') {
+      messages.value.push({ id: Date.now() + 2, type: 'bot', content: data.message })
     } else {
       messages.value.push({ id: Date.now() + 2, type: 'bot', content: data.message || '审核失败' })
     }
@@ -424,11 +424,11 @@ const handleAuditCancel = async () => {
     const requestBody = {
       userId: userId.value,
       sessionId: sessionId.value,
-      nodeId: auditData.value.nodeId,
+      nodeId: auditData.value.extraInfo?.nodeId,
       approved: false,
-      toolFeedbacks: auditData.value.toolFeedbacks
+      toolFeedbacks: auditData.value.confirmInfo
     }
-    const response = await fetch('/api/chat/audit', {
+    const response = await fetch('/api/chat/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody)
