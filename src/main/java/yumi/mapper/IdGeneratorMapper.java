@@ -9,9 +9,9 @@ import yumi.entity.IdGeneratorEntity;
 public interface IdGeneratorMapper extends BaseMapper<IdGeneratorEntity> {
 
     /**
-     * 按 code 查询（FOR UPDATE 行锁，保证并发安全）
+     * value = value + 1
      */
-    IdGeneratorEntity selectByCodeForUpdate(@Param("code") String code);
+    int incrementValue(@Param("code") String code);
 
     /**
      * 首次插入：code + value=1
@@ -19,12 +19,7 @@ public interface IdGeneratorMapper extends BaseMapper<IdGeneratorEntity> {
     int insertWithValue1(@Param("code") String code);
 
     /**
-     * value = value + 1，并返回新值（单次操作，避免 FOR UPDATE 行锁）
-     */
-    Long incrementAndGet(@Param("code") String code);
-
-    /**
-     * 取更新后的值（已废弃，保留兼容）
+     * 取当前值
      */
     Long selectValueByCode(@Param("code") String code);
 }

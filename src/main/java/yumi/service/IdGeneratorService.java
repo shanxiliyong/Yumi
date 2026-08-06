@@ -16,7 +16,7 @@ public class IdGeneratorService {
      * 获取下一个 ID
      * - 首次调用（code 不存在）：插入一条 value=1 的记录，返回 1
      * - 后续每次调用：value + 1，返回新值
-     * 通过单次 UPDATE 语句直接返回新值，避免 FOR UPDATE 行锁性能问题
+     * 无行锁，通过 UPDATE 影响行数判断记录是否存在
      */
     @Transactional
     public long nextId(String code) {
@@ -24,13 +24,14 @@ public class IdGeneratorService {
             throw new IllegalArgumentException("code 不能为空");
         }
 
-        // 单次 UPDATE 直接返回新值（影响行数为 0 说明记录不存在）
-        Long newValue = mapper.incrementAndGet(code);
-        if (newValue != null) {
-            return newValue;
+        // 先尝试 UPDATE（无行锁）
+        int rows = mapper.incrementValue(code);
+        if (rows > 0) {
+            // 记录存在，返回新值
+            return mapper.selectValueByCode(code);
         }
 
-        // 首次调用，插入 value=1
+        // 记录不存在，首次插入
         mapper.insertWithValue1(code);
         return 1L;
     }

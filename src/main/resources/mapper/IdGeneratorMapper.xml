@@ -12,17 +12,16 @@
         FOR UPDATE
     </select>
 
+    <update id="incrementValue">
+        UPDATE id_generator
+        SET value = value + 1
+        WHERE code = #{code}
+    </update>
+
     <insert id="insertWithValue1">
         INSERT INTO id_generator (code, value)
         VALUES (#{code}, 1)
     </insert>
-
-    <update id="incrementAndGet">
-        UPDATE id_generator
-        SET value = value + 1
-        WHERE code = #{code};
-        SELECT value FROM id_generator WHERE code = #{code}
-    </update>
 
     <select id="selectValueByCode" resultType="java.lang.Long">
         SELECT value
