@@ -83,7 +83,7 @@ public class ChatController {
             throw new YErrorMessageException("[错误] 会话ID不能为空");
         }
 
-        if (StringUtils.isEmpty(request.getMessage())) {
+        if (!Objects.equals(request.getType(), ConstantUtil.TYPE_AUDIT) && StringUtils.isEmpty(request.getMessage())) {
             throw new YErrorMessageException("[错误] 消息不能为空");
         }
     }

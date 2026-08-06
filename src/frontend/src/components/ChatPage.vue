@@ -242,7 +242,7 @@ const loadMessagesFromBackend = async (sessionId) => {
 const switchSession = async (session) => {
   sessionId.value = session.sessionId
   currentSessionName.value = session.name
-  currentRequestType.value = session.requestType || 'stream'
+  currentRequestType.value = session.requestType || 'send'
   localStorage.setItem('currentSessionId', session.sessionId.toString())
   if (session.digitalHumanId) {
     selectedDigitalHumanId.value = session.digitalHumanId
@@ -393,6 +393,7 @@ const handleAuditApprove = async () => {
     const requestBody = {
       userId: userId.value,
       sessionId: sessionId.value,
+      type: 'audit',
       nodeId: auditData.value.extraInfo?.nodeId,
       approved: true,
       toolFeedbacks: auditData.value.confirmInfo
@@ -424,6 +425,7 @@ const handleAuditCancel = async () => {
     const requestBody = {
       userId: userId.value,
       sessionId: sessionId.value,
+      type: 'audit',
       nodeId: auditData.value.extraInfo?.nodeId,
       approved: false,
       toolFeedbacks: auditData.value.confirmInfo
