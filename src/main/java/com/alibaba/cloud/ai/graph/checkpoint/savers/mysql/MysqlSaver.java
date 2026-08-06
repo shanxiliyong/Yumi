@@ -178,7 +178,7 @@ public class MysqlSaver extends AbstractJdbcCheckpointSaver {
 
     private static final String INSERT_CHECKPOINT = """
 			INSERT INTO GRAPH_CHECKPOINT(checkpoint_id, thread_id, node_id, next_node_id, state_data,state_data_json,base_thread_id)
-			SELECT ?, thread_id, ?, ?, ?,?
+			SELECT ?, thread_id, ?, ?, ?,?,?
 			FROM GRAPH_THREAD
 			WHERE thread_name = ? AND is_released = FALSE
 			""";
@@ -483,7 +483,6 @@ public class MysqlSaver extends AbstractJdbcCheckpointSaver {
 
         Connection conn = null;
         try (Connection ignored = conn = dataSource.getConnection()) {
-            String o =(String) checkpoint.getState().get(ConstantUtil.BASE_THREAD_ID);
             conn.setAutoCommit(false);
 
             try (PreparedStatement upsertStatement = conn.prepareStatement(UPSERT_THREAD);
