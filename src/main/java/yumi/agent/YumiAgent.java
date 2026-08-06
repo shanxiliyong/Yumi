@@ -2,10 +2,11 @@ package yumi.agent;
 
 import reactor.core.publisher.Flux;
 import yumi.common.YumiContext;
+import yumi.response.AgentResponse;
 
 public interface YumiAgent {
 
-    String chat(YumiContext context);
+    AgentResponse chat(YumiContext context);
 
     Flux<String> chatStream(YumiContext context);
 }

@@ -17,6 +17,7 @@ import yumi.config.StrategyConfig;
 import yumi.entity.DigitalHumanEntity;
 import yumi.entity.SessionEntity;
 import yumi.request.ChatRequest;
+import yumi.response.AgentResponse;
 import yumi.service.DigitalHumanService;
 import yumi.service.SessionService;
 
@@ -108,33 +109,16 @@ public class ChatController {
             context.setDh(dh);
         }
 
-        String content = yumiAgent.chat(context);
+        AgentResponse agentResponse = yumiAgent.chat(context);
 
-        // 解析统一返回格式
-        try {
-            Map<String, Object> result = JackJsonUtil.parseObject(content, Map.class);
-            String type = (String) result.get("type");
-
-            if ("audit".equals(type)) {
-                // 审核中断，直接返回
-                return ResponseEntity.ok(result);
-            } else if ("normal".equals(type)) {
-                // 普通消息，更新会话
-                String message = (String) result.get("message");
-                String lastMsg = message != null && message.length() > 50 ? message.substring(0, 50) + "..." : message;
-                sessionService.updateLastMessage(request.getSessionId(), lastMsg);
-                return ResponseEntity.ok(result);
-            } else if ("error".equals(type)) {
-                return ResponseEntity.ok(result);
-            }
-        } catch (Exception e) {
-            log.warn("解析响应失败", e);
+        // 普通消息，更新会话
+        if ("normal".equals(agentResponse.getType())) {
+            String message = agentResponse.getMessage();
+            String lastMsg = message != null && message.length() > 50 ? message.substring(0, 50) + "..." : message;
+            sessionService.updateLastMessage(request.getSessionId(), lastMsg);
         }
 
-        // 兜底：无法解析时返回原始内容
-        response.put("type", "normal");
-        response.put("message", content);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(agentResponse);
     }
 
     /**
