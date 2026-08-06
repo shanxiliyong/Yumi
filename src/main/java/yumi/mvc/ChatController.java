@@ -144,14 +144,6 @@ public class ChatController {
 
 
         AgentResponse agentResponse = yumiAgent.chat(context);
-
-        // 普通消息，更新会话
-        if (ConstantUtil.TYPE_NORMAL.equals(agentResponse.getType())) {
-            String message = agentResponse.getMessage();
-            String lastMsg = message != null && message.length() > 50 ? message.substring(0, 50) + "..." : message;
-            sessionService.updateLastMessage(request.getSessionId(), lastMsg);
-        }
-
         return ResponseEntity.ok(agentResponse);
     }
 

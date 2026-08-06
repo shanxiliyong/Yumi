@@ -16,6 +16,7 @@ import reactor.core.publisher.Flux;
 import yumi.common.InterruptionCache;
 import yumi.common.JackJsonUtil;
 import yumi.common.YumiContext;
+import yumi.request.ChatRequest;
 import yumi.response.AgentResponse;
 import yumi.service.IdGeneratorService;
 
@@ -66,7 +67,54 @@ public class BaseYumiAgent implements YumiAgent {
     }
 
 
-    public AgentResponse chat(YumiContext context) {
+    public AgentResponse chat(ChatRequest request, YumiContext context) {
+        // 审核请求处理
+        if (ConstantUtil.TYPE_AUDIT.equals(request.getType()) && request.getNodeId() != null && request.getApproved() != null) {
+            log.info("audit request: nodeId={}, approved={}", request.getNodeId(), request.getApproved());
+
+            // 从缓存中获取中断元数据
+            InterruptionMetadata interruptionMetadata = interruptionCache.getAndRemove(context.getSessionKey(), request.getNodeId());
+            if (interruptionMetadata == null) {
+                return AgentResponse.builder()
+                        .type(ConstantUtil.TYPE_ERROR)
+                        .message("未找到中断元数据")
+                        .build();
+            }
+
+            if (request.getApproved()) {
+                // 构建批准反馈
+                InterruptionMetadata.Builder feedbackBuilder = InterruptionMetadata.builder()
+                        .nodeId(request.getNodeId())
+                        .state(interruptionMetadata.state());
+
+                // 对每个工具调用设置批准决策
+                interruptionMetadata.toolFeedbacks().forEach(toolFeedback -> {
+                    InterruptionMetadata.ToolFeedback approvedFeedback =
+                            InterruptionMetadata.ToolFeedback.builder(toolFeedback)
+                                    .result(InterruptionMetadata.ToolFeedback.FeedbackResult.APPROVED)
+                                    .build();
+                    feedbackBuilder.addToolFeedback(approvedFeedback);
+                });
+
+                InterruptionMetadata approvalMetadata = feedbackBuilder.build();
+
+                // TODO: 调用 agent 恢复执行，传入 approvalMetadata
+                // NodeOutput output = agent.resume(approvalMetadata, config);
+
+                return AgentResponse.builder()
+                        .type(ConstantUtil.TYPE_NORMAL)
+                        .message("工具调用已确认执行")
+                        .build();
+            } else {
+                // 取消执行
+                return AgentResponse.builder()
+                        .type(ConstantUtil.TYPE_NORMAL)
+                        .message("已取消工具调用")
+                        .build();
+            }
+        }
+
+        // 普通聊天请求
         try {
             ReactAgent agent = agentBuilderService.buildAgent(context);
             long executeRound = idGeneratorService.nextId(context.getSessionKey());
@@ -76,7 +124,7 @@ public class BaseYumiAgent implements YumiAgent {
                     .addMetadata(EXECUTE_ROUND, executeRound)
                     .build();
 
-            Optional<NodeOutput> result = agent.invokeAndGetOutput(context.getRequest().getMessage(), config);
+            Optional<NodeOutput> result = agent.invokeAndGetOutput(request.getMessage(), config);
             if (!result.isPresent()) {
                 log.warn("Agent 执行结果为空 threadId={}, executeRound={}", context.getSessionKey(), executeRound);
                 return AgentResponse.builder()
