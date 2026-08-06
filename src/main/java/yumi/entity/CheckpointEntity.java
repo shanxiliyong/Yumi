@@ -19,6 +19,9 @@ public class CheckpointEntity {
     @TableField("thread_id")
     private String threadId;
 
+    @TableField("base_thread_id")
+    private String baseThreadId;
+
     @TableField("node_id")
     private String nodeId;
 
@@ -64,6 +67,14 @@ public class CheckpointEntity {
 
     public void setThreadId(String threadId) {
         this.threadId = threadId;
+    }
+
+    public String getBaseThreadId() {
+        return baseThreadId;
+    }
+
+    public void setBaseThreadId(String baseThreadId) {
+        this.baseThreadId = baseThreadId;
     }
 
     public String getNodeId() {
