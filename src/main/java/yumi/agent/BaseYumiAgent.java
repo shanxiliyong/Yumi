@@ -17,7 +17,9 @@ import yumi.common.JackJsonUtil;
 import yumi.common.YumiContext;
 import yumi.service.IdGeneratorService;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static yumi.common.ConstantUtil.BASE_THREAD_ID;
@@ -69,7 +71,10 @@ public class BaseYumiAgent implements YumiAgent {
             Optional<NodeOutput> result = agent.invokeAndGetOutput(context.getRequest().getMessage(), config);
             if (!result.isPresent()) {
                 log.warn("Agent 执行结果为空 threadId={}, executeRound={}", context.getSessionKey(), executeRound);
-                return "处理失败: 执行结果为空";
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("type", "error");
+                errorResponse.put("message", "执行结果为空");
+                return JackJsonUtil.toJsonStr(errorResponse);
             }
             NodeOutput output = result.get();
             // 检查中断并处理
@@ -78,7 +83,15 @@ public class BaseYumiAgent implements YumiAgent {
                 InterruptionMetadata interruptionMetadata = (InterruptionMetadata) output;
                 List<InterruptionMetadata.ToolFeedback> toolFeedbacks = interruptionMetadata.toolFeedbacks();
                 log.info("中断工具调用: {}", JackJsonUtil.toJsonStr(toolFeedbacks));
-                return JackJsonUtil.toJsonStr(toolFeedbacks);
+                
+                // 构建审核响应格式
+                Map<String, Object> auditResponse = new HashMap<>();
+                auditResponse.put("type", "audit");
+                auditResponse.put("confirmInfo", toolFeedbacks);
+                Map<String, Object> extraInfo = new HashMap<>();
+                extraInfo.put("nodeId", interruptionMetadata.nodeId());
+                auditResponse.put("extraInfo", extraInfo);
+                return JackJsonUtil.toJsonStr(auditResponse);
             } else {
                 log.info("未检测到中断，继续执行 threadId={}, executeRound={}", context.getSessionKey(), executeRound);
                 var assistantMessage = agent.extractAssistantMessage(Optional.ofNullable(output.state()));
@@ -86,13 +99,21 @@ public class BaseYumiAgent implements YumiAgent {
                 if (text != null) {
                     text = text.replace("\\n", "\n");
                 }
-                return text;
+                
+                // 构建普通响应格式
+                Map<String, Object> normalResponse = new HashMap<>();
+                normalResponse.put("type", "normal");
+                normalResponse.put("message", text);
+                return JackJsonUtil.toJsonStr(normalResponse);
             }
 
 
         } catch (GraphRunnerException e) {
             log.error("Agent call error", e);
-            return "处理失败: " + e.getMessage();
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("type", "error");
+            errorResponse.put("message", "处理失败: " + e.getMessage());
+            return JackJsonUtil.toJsonStr(errorResponse);
         }
     }
 

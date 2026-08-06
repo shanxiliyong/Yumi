@@ -225,12 +225,13 @@ public class AgentBuilderService {
             } else if ("system".equals(type) && tool.getName().equals(SystemToolRegistry.DEFAULT_SHELL_TOOL_NAME)) {
                 ShellToolAgentHook shellHook = ShellToolAgentHook.builder()
                         .shellTool2(ShellTool2.builder(System.getProperty("user.dir")).build())
+                        .shellToolName(tool.getName())
                         .build();
                 hooks.add(shellHook);
 
 
                 HumanInTheLoopHook humanInTheLoopHook = HumanInTheLoopHook.builder()
-                        .approvalOn(SystemToolRegistry.DEFAULT_SHELL_TOOL_NAME, ToolConfig.builder()
+                        .approvalOn("shell", ToolConfig.builder()
                                 .description("请确认执行shell命令")
                                 .build())
                         .build();

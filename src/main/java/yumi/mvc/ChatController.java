@@ -110,11 +110,73 @@ public class ChatController {
 
         String content = yumiAgent.chat(context);
 
-        String lastMsg = content.length() > 50 ? content.substring(0, 50) + "..." : content;
-        sessionService.updateLastMessage(request.getSessionId(), lastMsg);
+        // 解析统一返回格式
+        try {
+            Map<String, Object> result = JackJsonUtil.parseObject(content, Map.class);
+            String type = (String) result.get("type");
 
-        response.put("success", true);
-        response.put("content", content);
+            if ("audit".equals(type)) {
+                // 审核中断，直接返回
+                return ResponseEntity.ok(result);
+            } else if ("normal".equals(type)) {
+                // 普通消息，更新会话
+                String message = (String) result.get("message");
+                String lastMsg = message != null && message.length() > 50 ? message.substring(0, 50) + "..." : message;
+                sessionService.updateLastMessage(request.getSessionId(), lastMsg);
+                return ResponseEntity.ok(result);
+            } else if ("error".equals(type)) {
+                return ResponseEntity.ok(result);
+            }
+        } catch (Exception e) {
+            log.warn("解析响应失败", e);
+        }
+
+        // 兜底：无法解析时返回原始内容
+        response.put("type", "normal");
+        response.put("message", content);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 审核接口：确认或取消工具调用
+     */
+    @PostMapping("/audit")
+    public ResponseEntity<Map<String, Object>> audit(@RequestBody Map<String, Object> auditRequest) {
+        log.info("audit request: {}", auditRequest);
+        Map<String, Object> response = new HashMap<>();
+
+        String userId = (String) auditRequest.get("userId");
+        Long sessionId = ((Number) auditRequest.get("sessionId")).longValue();
+        String nodeId = (String) auditRequest.get("nodeId");
+        Boolean approved = (Boolean) auditRequest.get("approved");
+
+        if (approved) {
+            // 确认执行：恢复图执行
+            YumiContext context = new YumiContext();
+            ChatRequest request = new ChatRequest();
+            request.setUserId(userId);
+            request.setSessionId(sessionId);
+            context.setRequest(request);
+
+            SessionEntity session = sessionService.getSession(sessionId);
+            if (session != null && session.getDigitalHumanId() != null) {
+                DigitalHumanEntity dh = digitalHumanService.getById(session.getDigitalHumanId());
+                context.setDh(dh);
+            }
+
+            // TODO: 调用 agent 恢复执行，传入用户反馈
+            String content = yumiAgent.resumeFromAudit(context, nodeId, auditRequest);
+
+            String lastMsg = content.length() > 50 ? content.substring(0, 50) + "..." : content;
+            sessionService.updateLastMessage(sessionId, lastMsg);
+
+            response.put("success", true);
+            response.put("content", content);
+        } else {
+            // 取消执行
+            response.put("success", true);
+            response.put("message", "已取消工具调用");
+        }
 
         return ResponseEntity.ok(response);
     }

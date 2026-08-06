@@ -26,6 +26,11 @@ const userId = ref(localStorage.getItem('userId') || '')
 const sessionId = ref(localStorage.getItem('currentSessionId') ? parseInt(localStorage.getItem('currentSessionId')) : null)
 const currentSessionName = ref('')
 
+// 审核相关状态
+const showAuditDialog = ref(false)
+const auditData = ref(null)
+const auditLoading = ref(false)
+
 const digitalHumans = ref([])
 const selectedDigitalHumanId = ref(null)
 const sessions = ref([])
@@ -362,10 +367,79 @@ const sendNonStreamMessage = async (userMessage) => {
   const data = await response.json()
   messages.value = messages.value.filter(m => m.type !== 'loading')
 
-  if (data.success) {
-    messages.value.push({ id: Date.now() + 2, type: 'bot', content: data.content })
-  } else {
+  // 检查返回类型
+  if (data.type === 'audit') {
+    // 审核中断
+    auditData.value = data
+    showAuditDialog.value = true
+    return
+  } else if (data.type === 'normal') {
+    // 普通消息
+    messages.value.push({ id: Date.now() + 2, type: 'bot', content: data.message || '' })
+  } else if (data.type === 'error') {
+    // 错误消息
     messages.value.push({ id: Date.now() + 2, type: 'bot', content: data.message || '请求失败' })
+  } else {
+    // 兜底
+    messages.value.push({ id: Date.now() + 2, type: 'bot', content: data.message || '请求失败' })
+  }
+}
+
+// 审核确认
+const handleAuditApprove = async () => {
+  if (!auditData.value) return
+  auditLoading.value = true
+  try {
+    const requestBody = {
+      userId: userId.value,
+      sessionId: sessionId.value,
+      nodeId: auditData.value.nodeId,
+      approved: true,
+      toolFeedbacks: auditData.value.toolFeedbacks
+    }
+    const response = await fetch('/api/chat/audit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody)
+    })
+    const data = await response.json()
+    showAuditDialog.value = false
+    if (data.success) {
+      messages.value.push({ id: Date.now() + 2, type: 'bot', content: data.content })
+    } else {
+      messages.value.push({ id: Date.now() + 2, type: 'bot', content: data.message || '审核失败' })
+    }
+  } catch (e) {
+    ElMessage.error('审核请求失败')
+  } finally {
+    auditLoading.value = false
+  }
+}
+
+// 审核取消
+const handleAuditCancel = async () => {
+  if (!auditData.value) return
+  auditLoading.value = true
+  try {
+    const requestBody = {
+      userId: userId.value,
+      sessionId: sessionId.value,
+      nodeId: auditData.value.nodeId,
+      approved: false,
+      toolFeedbacks: auditData.value.toolFeedbacks
+    }
+    const response = await fetch('/api/chat/audit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody)
+    })
+    const data = await response.json()
+    showAuditDialog.value = false
+    messages.value.push({ id: Date.now() + 2, type: 'bot', content: data.message || '已取消执行' })
+  } catch (e) {
+    ElMessage.error('取消请求失败')
+  } finally {
+    auditLoading.value = false
   }
 }
 
@@ -611,6 +685,24 @@ onMounted(() => {
       <div class="dialog-footer">
         <ElButton @click="showCreateDialog = false">取消</ElButton>
         <ElButton type="primary" @click="confirmCreateSession">确定</ElButton>
+      </div>
+    </template>
+  </ElDialog>
+
+  <!-- 审核弹窗 -->
+  <ElDialog v-model="showAuditDialog" title="工具调用审核" width="600px" :close-on-click-modal="false" :close-on-press-escape="false">
+    <div class="audit-dialog">
+      <div class="audit-node">节点: {{ auditData?.extraInfo?.nodeId }}</div>
+      <ElTable :data="auditData?.confirmInfo || []" border style="margin-top: 12px">
+        <ElTableColumn prop="name" label="工具名称" width="120" />
+        <ElTableColumn prop="arguments" label="参数" min-width="200" show-overflow-tooltip />
+        <ElTableColumn prop="description" label="说明" min-width="200" show-overflow-tooltip />
+      </ElTable>
+    </div>
+    <template #footer>
+      <div class="dialog-footer">
+        <ElButton @click="handleAuditCancel" :loading="auditLoading">取消</ElButton>
+        <ElButton type="primary" @click="handleAuditApprove" :loading="auditLoading">确认执行</ElButton>
       </div>
     </template>
   </ElDialog>
@@ -1343,5 +1435,19 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+/* 审核弹窗样式 */
+.audit-dialog {
+  padding: 8px 0;
+}
+
+.audit-node {
+  font-size: 14px;
+  color: #606266;
+  padding: 8px 12px;
+  background: #f5f7fa;
+  border-radius: 6px;
+  font-family: monospace;
 }
 </style>
