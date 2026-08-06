@@ -124,6 +124,7 @@ public class SessionController {
         return ResponseEntity.ok(response);
     }
 
+
     @PostMapping("/messages")
     public ResponseEntity<Map<String, Object>> getSessionMessages(@RequestBody ChatRequest request) {
         log.info("getSessionMessages request: {}", request.toString());
