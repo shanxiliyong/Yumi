@@ -483,6 +483,8 @@ const initApp = async () => {
     const currentSession = sessions.value.find(s => s.sessionId === sessionId.value)
     if (currentSession) {
       currentSessionName.value = currentSession.name
+      currentRequestType.value = currentSession.requestType || 'send'
+      console.log('初始化会话 - requestType:', currentRequestType.value, 'session:', JSON.stringify(currentSession, null, 2))
       if (!messages.value || messages.value.length === 0) {
         await loadMessagesFromBackend(sessionId.value)
       }
