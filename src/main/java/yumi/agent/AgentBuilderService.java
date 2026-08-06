@@ -4,6 +4,8 @@ import com.alibaba.cloud.ai.graph.agent.AgentTool;
 import com.alibaba.cloud.ai.graph.agent.Builder;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
 import com.alibaba.cloud.ai.graph.agent.hook.Hook;
+import com.alibaba.cloud.ai.graph.agent.hook.hip.HumanInTheLoopHook;
+import com.alibaba.cloud.ai.graph.agent.hook.hip.ToolConfig;
 import com.alibaba.cloud.ai.graph.agent.hook.shelltool.ShellToolAgentHook;
 import com.alibaba.cloud.ai.graph.agent.hook.skills.SkillsAgentHook;
 import com.alibaba.cloud.ai.graph.agent.hook.summarization.SummarizationHook;
@@ -225,6 +227,14 @@ public class AgentBuilderService {
                         .shellTool2(ShellTool2.builder(System.getProperty("user.dir")).build())
                         .build();
                 hooks.add(shellHook);
+
+
+                HumanInTheLoopHook humanInTheLoopHook = HumanInTheLoopHook.builder()
+                        .approvalOn(SystemToolRegistry.DEFAULT_SHELL_TOOL_NAME, ToolConfig.builder()
+                                .description("请确认执行shell命令")
+                                .build())
+                        .build();
+                hooks.add(humanInTheLoopHook);
             }
 
         }

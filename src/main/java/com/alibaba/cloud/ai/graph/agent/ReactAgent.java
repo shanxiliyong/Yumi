@@ -284,8 +284,9 @@ public class ReactAgent extends BaseAgent {
         return extractAssistantMessage(doInvoke(inputs, config));
     }
 
-    private AssistantMessage extractAssistantMessage(Optional<OverAllState> state) {
+    public AssistantMessage extractAssistantMessage(Optional<OverAllState> state) {
         if (StringUtils.hasLength(outputKey)) {
+
             return state.flatMap(s -> s.value(outputKey))
                     .map(msg -> (AssistantMessage) msg)
                     .orElseThrow(() -> new IllegalStateException("Output key " + outputKey + " not found in agent state"));
