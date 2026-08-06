@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import yumi.agent.BaseYumiAgent;
 import yumi.agent.YumiAgent;
-import yumi.common.InterruptionCache;
 import yumi.common.ConstantUtil;
 import yumi.common.YErrorMessageException;
 import yumi.common.YumiContext;
@@ -32,14 +31,12 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequestMapping("/api/chat")
 public class ChatController {
 
-    @Autowired
-    private ApplicationContext applicationContext;
+
 
     @Autowired
     private SessionService sessionService;
 
-    @Autowired
-    private StrategyConfig strategyConfig;
+
 
     @Autowired
     private DigitalHumanService digitalHumanService;
@@ -47,8 +44,7 @@ public class ChatController {
     @Autowired
     BaseYumiAgent yumiAgent;
 
-    @Autowired
-    InterruptionCache interruptionCache;
+
 
     private Map<String, YumiAgent> agentMap = new ConcurrentHashMap<>();
 
@@ -105,96 +101,10 @@ public class ChatController {
                     .build());
         }
 
-        // 普通聊天请求
-        YumiContext context = new YumiContext();
-        context.setRequest(request);
 
-        SessionEntity session = sessionService.getSession(request.getSessionId());
-        if (session != null && session.getDigitalHumanId() != null) {
-            DigitalHumanEntity dh = digitalHumanService.getById(session.getDigitalHumanId());
-            context.setDh(dh);
-        }
-        // 审核请求处理
-        if (request.getType().equals(ConstantUtil.TYPE_AUDIT)&& request.getNodeId() != null && request.getApproved() != null) {
-            // 从缓存中获取中断元数据
-            InterruptionMetadata interruptionMetadata = interruptionCache.get(context.getSessionKey(), request.getNodeId());
-            if (interruptionMetadata == null) {
-                return ResponseEntity.ok(AgentResponse.builder()
-                        .type(ConstantUtil.TYPE_ERROR)
-                        .message("未找到中断元数据")
-                        .build());
-            }
-            // 构建批准反馈
-            InterruptionMetadata.Builder feedbackBuilder = InterruptionMetadata.builder()
-                    .nodeId(request.getNodeId())
-                    .state(interruptionMetadata.state());
+        AgentResponse agentResponse = yumiAgent.chat(request);
 
-            List<InterruptionMetadata.ToolFeedback> toolFeedbacks =  null;
-            // 对每个工具调用设置批准决策
-            interruptionMetadata.toolFeedbacks().forEach(toolFeedback -> {
-                InterruptionMetadata.ToolFeedback approvedFeedback =
-                        InterruptionMetadata.ToolFeedback.builder(toolFeedback)
-                                .result(InterruptionMetadata.ToolFeedback.FeedbackResult.APPROVED)
-                                .build();
-                feedbackBuilder.addToolFeedback(approvedFeedback);
-            });
-
-            InterruptionMetadata approvalMetadata = feedbackBuilder.build();
-        }
-
-
-        AgentResponse agentResponse = yumiAgent.chat(context);
         return ResponseEntity.ok(agentResponse);
-    }
-
-    /**
-     * 处理审核请求：确认或取消工具调用
-     */
-    private ResponseEntity<AgentResponse> handleAudit(ChatRequest request) {
-        log.info("audit request: nodeId={}, approved={}", request.getNodeId(), request.getApproved());
-
-        // 从内存缓存中获取中断元数据
-        String threadId = request.getUserId() + "-" + request.getSessionId();
-        InterruptionMetadata metadata = interruptionCache.getAndRemove(threadId, request.getNodeId());
-
-        if (metadata == null) {
-            return ResponseEntity.ok(AgentResponse.builder()
-                    .type(ConstantUtil.TYPE_ERROR)
-                    .message("未找到对应的中断记录，可能已过期")
-                    .build());
-        }
-
-        if (request.getApproved()) {
-            // 确认执行：恢复图执行
-            YumiContext context = new YumiContext();
-            context.setRequest(request);
-
-            SessionEntity session = sessionService.getSession(request.getSessionId());
-            if (session != null && session.getDigitalHumanId() != null) {
-                DigitalHumanEntity dh = digitalHumanService.getById(session.getDigitalHumanId());
-                context.setDh(dh);
-            }
-
-            // TODO: 调用 agent 恢复执行，传入用户反馈和 metadata
-            // String content = yumiAgent.resumeFromAudit(context, metadata);
-
-            // 临时返回
-            AgentResponse response = AgentResponse.builder()
-                    .type(ConstantUtil.TYPE_NORMAL)
-                    .message("工具调用已确认执行")
-                    .build();
-
-            String lastMsg = response.getMessage().length() > 50 ? response.getMessage().substring(0, 50) + "..." : response.getMessage();
-            sessionService.updateLastMessage(request.getSessionId(), lastMsg);
-
-            return ResponseEntity.ok(response);
-        } else {
-            // 取消执行
-            return ResponseEntity.ok(AgentResponse.builder()
-                    .type(ConstantUtil.TYPE_NORMAL)
-                    .message("已取消工具调用")
-                    .build());
-        }
     }
 
 
