@@ -518,9 +518,6 @@ const renderMarkdown = (content) => {
     }
 
     text = text.trim()
-    console.log('Has good format:', hasGoodFormat)
-    console.log('Processed markdown:', text.substring(0, 1000))
-
     return marked(text)
   } catch (e) {
     console.error('Markdown render error:', e)
