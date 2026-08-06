@@ -225,8 +225,21 @@ const loadMessagesFromBackend = async (sessionId) => {
         type: m.type || 'bot',
         content: m.content || ''
       }))
-      return true
     }
+    // 处理待审核中断
+    if (data.auditInfo && data.auditInfo.length > 0) {
+      const latestAudit = data.auditInfo[0]
+      messages.value.push({
+        id: Date.now() + 1000,
+        type: 'audit',
+        auditData: {
+          type: 'audit',
+          confirmInfo: latestAudit.toolFeedbacks,
+          extraInfo: { nodeId: latestAudit.nodeId }
+        }
+      })
+    }
+    return true
   } catch (e) {
     console.error('获取消息失败:', e)
   }
@@ -235,6 +248,7 @@ const loadMessagesFromBackend = async (sessionId) => {
 }
 
 const switchSession = async (session) => {
+  console.log('切换会话:', session)
   sessionId.value = session.sessionId
   currentSessionName.value = session.name
   currentRequestType.value = session.requestType || 'send'
@@ -268,12 +282,22 @@ const sendMessage = async () => {
   scrollToBottom()
 
   try {
+    console.log('=== 发送消息 ===')
+    console.log('消息内容:', userMessage)
+    console.log('请求类型:', currentRequestType.value)
+    console.log('用户ID:', userId.value)
+    console.log('会话ID:', sessionId.value)
+    
     if (currentRequestType.value === 'stream') {
+      console.log('使用流式请求')
       await sendStreamMessage(userMessage)
     } else {
+      console.log('使用非流式请求')
       await sendNonStreamMessage(userMessage)
     }
+    console.log('消息发送成功')
   } catch (e) {
+    console.error('消息发送失败:', e)
     messages.value = messages.value.filter(m => m.id !== loadingId)
     messages.value.push({ id: Date.now() + 2, type: 'bot', content: '抱歉，处理请求时出现错误。' })
     ElMessage.error('发送失败')

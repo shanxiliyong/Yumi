@@ -4,7 +4,9 @@ import com.alibaba.cloud.ai.graph.action.InterruptionMetadata;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -24,7 +26,9 @@ public class InterruptionCache {
      * 存储中断元数据
      */
     public void put(String sessionKey, String nodeId, InterruptionMetadata metadata) {
-        cache.computeIfAbsent(sessionKey, k -> new ConcurrentHashMap<>()).put(nodeId, metadata);
+        cache.computeIfAbsent(sessionKey, k ->
+                Collections.synchronizedMap(new LinkedHashMap<>())
+        ).put(nodeId, metadata);
         log.info("缓存中断元数据: sessionKey={}, nodeId={}", sessionKey, nodeId);
     }
 
@@ -59,6 +63,22 @@ public class InterruptionCache {
             return null;
         }
         return sessionMap.get(nodeId);
+    }
+
+    /**
+     * 获取指定 session 的最新待审核中断（最后插入的）
+     */
+    public InterruptionMetadata getLatest(String sessionKey) {
+        Map<String, InterruptionMetadata> sessionMap = cache.get(sessionKey);
+        if (sessionMap == null || sessionMap.isEmpty()) {
+            return null;
+        }
+        // LinkedHashMap 保证插入顺序，最后一个即为最新
+        Map.Entry<String, InterruptionMetadata> lastEntry = null;
+        for (Map.Entry<String, InterruptionMetadata> entry : sessionMap.entrySet()) {
+            lastEntry = entry;
+        }
+        return lastEntry != null ? lastEntry.getValue() : null;
     }
 
     /**
