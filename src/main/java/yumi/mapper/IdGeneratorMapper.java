@@ -19,12 +19,12 @@ public interface IdGeneratorMapper extends BaseMapper<IdGeneratorEntity> {
     int insertWithValue1(@Param("code") String code);
 
     /**
-     * value = value + 1
+     * value = value + 1，并返回新值（单次操作，避免 FOR UPDATE 行锁）
      */
-    int incrementValue(@Param("code") String code);
+    Long incrementAndGet(@Param("code") String code);
 
     /**
-     * 取更新后的值
+     * 取更新后的值（已废弃，保留兼容）
      */
     Long selectValueByCode(@Param("code") String code);
 }

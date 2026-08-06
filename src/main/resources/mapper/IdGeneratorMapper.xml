@@ -17,10 +17,11 @@
         VALUES (#{code}, 1)
     </insert>
 
-    <update id="incrementValue">
+    <update id="incrementAndGet">
         UPDATE id_generator
         SET value = value + 1
-        WHERE code = #{code}
+        WHERE code = #{code};
+        SELECT value FROM id_generator WHERE code = #{code}
     </update>
 
     <select id="selectValueByCode" resultType="java.lang.Long">
