@@ -79,9 +79,33 @@ public class BaseYumiAgent implements YumiAgent {
 
 
     public AgentResponse chat(ChatRequest request) {
+        try {
+            // 1. 构建上下文
+            YumiContext context = buildContext(request);
 
+            // 2. 处理审核请求
+            InterruptionMetadata approvalMetadata = handleAuditRequest(request, context);
 
-        // 普通聊天请求
+            // 3. 构建 Agent 和配置
+            ReactAgent agent = agentBuilderService.buildAgent(context);
+            RunnableConfig config = buildRunnableConfig(context, approvalMetadata);
+
+            // 4. 执行 Agent
+            Optional<NodeOutput> result = agent.invokeAndGetOutput(request.getMessage(), config);
+
+            // 5. 处理输出
+            return handleAgentOutput(agent, result, context);
+
+        } catch (GraphRunnerException e) {
+            log.error("Agent call error", e);
+            return AgentResponse.builder().type(TYPE_ERROR).message("处理失败: " + e.getMessage()).build();
+        }
+    }
+
+    /**
+     * 构建执行上下文
+     */
+    private YumiContext buildContext(ChatRequest request) {
         YumiContext context = new YumiContext();
         context.setRequest(request);
 
@@ -90,97 +114,104 @@ public class BaseYumiAgent implements YumiAgent {
             DigitalHumanEntity dh = digitalHumanService.getById(session.getDigitalHumanId());
             context.setDh(dh);
         }
-        InterruptionMetadata approvalMetadata = null;
-        // 审核请求处理
-        if (ConstantUtil.TYPE_AUDIT.equals(request.getType()) && request.getNodeId() != null && request.getApproved() != null) {
-            log.info("audit request: nodeId={}, approved={}", request.getNodeId(), request.getApproved());
-            // 从缓存中获取中断元数据
-            InterruptionMetadata preInterruptionMetadata = interruptionCache.getAndRemove(context.getSessionKey(), request.getNodeId());
-            if (preInterruptionMetadata == null) {
-                return AgentResponse.builder()
-                        .type(ConstantUtil.TYPE_ERROR)
-                        .message("未找到中断元数据")
-                        .build();
-            }
-            if (request.getApproved()) {
-                // 构建批准反馈
-                InterruptionMetadata.Builder feedbackBuilder = InterruptionMetadata.builder()
-                        .nodeId(request.getNodeId())
-                        .state(preInterruptionMetadata.state());
 
-                // 对每个工具调用设置批准决策
-                preInterruptionMetadata.toolFeedbacks().forEach(toolFeedback -> {
-                    InterruptionMetadata.ToolFeedback approvedFeedback =
-                            InterruptionMetadata.ToolFeedback.builder(toolFeedback)
-                                    .result(InterruptionMetadata.ToolFeedback.FeedbackResult.APPROVED)
-                                    .build();
-                    feedbackBuilder.addToolFeedback(approvedFeedback);
-                });
-                approvalMetadata = feedbackBuilder.build();
-            }
+        // 生成执行轮次
+        context.setExecuteRound(idGeneratorService.nextId(context.getSessionKey()));
+
+        return context;
+    }
+
+    /**
+     * 处理审核请求，返回审批元数据（非审核请求返回 null）
+     */
+    private InterruptionMetadata handleAuditRequest(ChatRequest request, YumiContext context) {
+        if (!ConstantUtil.TYPE_AUDIT.equals(request.getType())
+                || request.getNodeId() == null
+                || request.getApproved() == null) {
+            return null;
         }
 
-        // 普通聊天请求
-        try {
-            ReactAgent agent = agentBuilderService.buildAgent(context);
-            long executeRound = idGeneratorService.nextId(context.getSessionKey());
-            RunnableConfig.Builder builder = RunnableConfig.builder()
-                    .threadId(context.getSessionKey())
-                    .addMetadata(BASE_THREAD_ID, context.getSessionKey())
-                    .addMetadata(EXECUTE_ROUND, executeRound);
-            if (approvalMetadata != null) {
-                builder.addMetadata(RunnableConfig.HUMAN_FEEDBACK_METADATA_KEY, approvalMetadata);
-            }
+        log.info("audit request: nodeId={}, approved={}", request.getNodeId(), request.getApproved());
 
-            Optional<NodeOutput> result = agent.invokeAndGetOutput(request.getMessage(), builder.build());
-            if (!result.isPresent()) {
-                log.warn("Agent 执行结果为空 threadId={}, executeRound={}", context.getSessionKey(), executeRound);
-                return AgentResponse.builder()
-                        .type(TYPE_ERROR)
-                        .message("执行结果为空")
-                        .build();
-            }
-            NodeOutput output = result.get();
-            // 检查中断并处理
-            if (output instanceof InterruptionMetadata) {
-                log.info("检测到中断，需要人工审批 threadId={}, executeRound={}", context.getSessionKey(), executeRound);
-                InterruptionMetadata interruptionMetadata = (InterruptionMetadata) output;
-                List<InterruptionMetadata.ToolFeedback> toolFeedbacks = interruptionMetadata.toolFeedbacks();
-                log.info("中断工具调用: {}", JackJsonUtil.toJsonStr(toolFeedbacks));
+        InterruptionMetadata preMetadata = interruptionCache.getAndRemove(context.getSessionKey(), request.getNodeId());
+        if (preMetadata == null) {
+            throw new IllegalStateException("未找到中断元数据");
+        }
 
-                // 存入内存缓存
-                interruptionCache.put(context.getSessionKey(), interruptionMetadata.node(), interruptionMetadata);
+        if (!request.getApproved()) {
+            return null; // 取消执行，不需要 approvalMetadata
+        }
 
-                Map<String, Object> extraInfo = new HashMap<>();
-                extraInfo.put("nodeId", interruptionMetadata.node());
+        // 构建批准反馈
+        InterruptionMetadata.Builder feedbackBuilder = InterruptionMetadata.builder()
+                .nodeId(request.getNodeId())
+                .state(preMetadata.state());
 
-                return AgentResponse.builder()
-                        .type(TYPE_AUDIT)
-                        .confirmInfo(toolFeedbacks)
-                        .extraInfo(extraInfo)
-                        .build();
-            } else {
-                log.info("未检测到中断，继续执行 threadId={}, executeRound={}", context.getSessionKey(), executeRound);
-                var assistantMessage = agent.extractAssistantMessage(Optional.ofNullable(output.state()));
-                String text = assistantMessage.getText();
-                if (text != null) {
-                    text = text.replace("\\n", "\n");
-                }
+        preMetadata.toolFeedbacks().forEach(toolFeedback -> {
+            InterruptionMetadata.ToolFeedback approvedFeedback =
+                    InterruptionMetadata.ToolFeedback.builder(toolFeedback)
+                            .result(InterruptionMetadata.ToolFeedback.FeedbackResult.APPROVED)
+                            .build();
+            feedbackBuilder.addToolFeedback(approvedFeedback);
+        });
 
-                return AgentResponse.builder()
-                        .type(TYPE_NORMAL)
-                        .message(text)
-                        .build();
-            }
+        return feedbackBuilder.build();
+    }
 
+    /**
+     * 构建 RunnableConfig
+     */
+    private RunnableConfig buildRunnableConfig(YumiContext context, InterruptionMetadata approvalMetadata) {
+        RunnableConfig.Builder builder = RunnableConfig.builder()
+                .threadId(context.getSessionKey())
+                .addMetadata(BASE_THREAD_ID, context.getSessionKey())
+                .addMetadata(EXECUTE_ROUND, context.getExecuteRound());
 
-        } catch (GraphRunnerException e) {
-            log.error("Agent call error", e);
+        if (approvalMetadata != null) {
+            builder.addMetadata(RunnableConfig.HUMAN_FEEDBACK_METADATA_KEY, approvalMetadata);
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * 处理 Agent 输出结果
+     */
+    private AgentResponse handleAgentOutput(ReactAgent agent, Optional<NodeOutput> result, YumiContext context) {
+        if (!result.isPresent()) {
+            log.warn("Agent 执行结果为空 threadId={}, executeRound={}", context.getSessionKey(), context.getExecuteRound());
+            return AgentResponse.builder().type(TYPE_ERROR).message("执行结果为空").build();
+        }
+
+        NodeOutput output = result.get();
+        // 中断场景
+        if (output instanceof InterruptionMetadata interruptionMetadata) {
+            log.info("检测到中断，需要人工审批 threadId={}, executeRound={}", context.getSessionKey(), context.getExecuteRound());
+            List<InterruptionMetadata.ToolFeedback> toolFeedbacks = interruptionMetadata.toolFeedbacks();
+            log.info("中断工具调用: {}", JackJsonUtil.toJsonStr(toolFeedbacks));
+
+            // 存入内存缓存
+            interruptionCache.put(context.getSessionKey(), interruptionMetadata.node(), interruptionMetadata);
+
+            Map<String, Object> extraInfo = new HashMap<>();
+            extraInfo.put("nodeId", interruptionMetadata.node());
+
             return AgentResponse.builder()
-                    .type(TYPE_ERROR)
-                    .message("处理失败: " + e.getMessage())
+                    .type(TYPE_AUDIT)
+                    .confirmInfo(toolFeedbacks)
+                    .extraInfo(extraInfo)
                     .build();
         }
+
+        // 正常场景
+        log.info("未检测到中断，继续执行 threadId={}, executeRound={}", context.getSessionKey(), context.getExecuteRound());
+        var assistantMessage = agent.extractAssistantMessage(Optional.ofNullable(output.state()));
+        String text = assistantMessage.getText();
+        if (text != null) {
+            text = text.replace("\\n", "\n");
+        }
+
+        return AgentResponse.builder().type(TYPE_NORMAL).message(text).build();
     }
 
     @Override

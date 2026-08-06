@@ -14,6 +14,8 @@ public class YumiContext {
 
     private DigitalHumanEntity parentDh;
 
+    private Long executeRound;
+
 
     public String getSessionKey() {
         String sessionKey = request.getUserId() + "-" +dh.getCode()+"-"+ request.getSessionId();
