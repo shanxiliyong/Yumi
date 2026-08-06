@@ -118,106 +118,107 @@ public class BaseYumiAgent implements YumiAgent {
                 });
                 approvalMetadata = feedbackBuilder.build();
             }
+        }
 
-            // 普通聊天请求
-            try {
-                ReactAgent agent = agentBuilderService.buildAgent(context);
-                long executeRound = idGeneratorService.nextId(context.getSessionKey());
-                RunnableConfig.Builder builder = RunnableConfig.builder()
-                        .threadId(context.getSessionKey())
-                        .addMetadata(BASE_THREAD_ID, context.getSessionKey())
-                        .addMetadata(EXECUTE_ROUND, executeRound);
-                if (approvalMetadata != null) {
-                    builder.addMetadata(RunnableConfig.HUMAN_FEEDBACK_METADATA_KEY, approvalMetadata);
-                }
+        // 普通聊天请求
+        try {
+            ReactAgent agent = agentBuilderService.buildAgent(context);
+            long executeRound = idGeneratorService.nextId(context.getSessionKey());
+            RunnableConfig.Builder builder = RunnableConfig.builder()
+                    .threadId(context.getSessionKey())
+                    .addMetadata(BASE_THREAD_ID, context.getSessionKey())
+                    .addMetadata(EXECUTE_ROUND, executeRound);
+            if (approvalMetadata != null) {
+                builder.addMetadata(RunnableConfig.HUMAN_FEEDBACK_METADATA_KEY, approvalMetadata);
+            }
 
-                Optional<NodeOutput> result = agent.invokeAndGetOutput(request.getMessage(), builder.build());
-                if (!result.isPresent()) {
-                    log.warn("Agent 执行结果为空 threadId={}, executeRound={}", context.getSessionKey(), executeRound);
-                    return AgentResponse.builder()
-                            .type(TYPE_ERROR)
-                            .message("执行结果为空")
-                            .build();
-                }
-                NodeOutput output = result.get();
-                // 检查中断并处理
-                if (output instanceof InterruptionMetadata) {
-                    log.info("检测到中断，需要人工审批 threadId={}, executeRound={}", context.getSessionKey(), executeRound);
-                    InterruptionMetadata interruptionMetadata = (InterruptionMetadata) output;
-                    List<InterruptionMetadata.ToolFeedback> toolFeedbacks = interruptionMetadata.toolFeedbacks();
-                    log.info("中断工具调用: {}", JackJsonUtil.toJsonStr(toolFeedbacks));
-
-                    // 存入内存缓存
-                    interruptionCache.put(context.getSessionKey(), interruptionMetadata.node(), interruptionMetadata);
-
-                    Map<String, Object> extraInfo = new HashMap<>();
-                    extraInfo.put("nodeId", interruptionMetadata.node());
-
-                    return AgentResponse.builder()
-                            .type(TYPE_AUDIT)
-                            .confirmInfo(toolFeedbacks)
-                            .extraInfo(extraInfo)
-                            .build();
-                } else {
-                    log.info("未检测到中断，继续执行 threadId={}, executeRound={}", context.getSessionKey(), executeRound);
-                    var assistantMessage = agent.extractAssistantMessage(Optional.ofNullable(output.state()));
-                    String text = assistantMessage.getText();
-                    if (text != null) {
-                        text = text.replace("\\n", "\n");
-                    }
-
-                    return AgentResponse.builder()
-                            .type(TYPE_NORMAL)
-                            .message(text)
-                            .build();
-                }
-
-
-            } catch (GraphRunnerException e) {
-                log.error("Agent call error", e);
+            Optional<NodeOutput> result = agent.invokeAndGetOutput(request.getMessage(), builder.build());
+            if (!result.isPresent()) {
+                log.warn("Agent 执行结果为空 threadId={}, executeRound={}", context.getSessionKey(), executeRound);
                 return AgentResponse.builder()
                         .type(TYPE_ERROR)
-                        .message("处理失败: " + e.getMessage())
+                        .message("执行结果为空")
                         .build();
             }
-        }
+            NodeOutput output = result.get();
+            // 检查中断并处理
+            if (output instanceof InterruptionMetadata) {
+                log.info("检测到中断，需要人工审批 threadId={}, executeRound={}", context.getSessionKey(), executeRound);
+                InterruptionMetadata interruptionMetadata = (InterruptionMetadata) output;
+                List<InterruptionMetadata.ToolFeedback> toolFeedbacks = interruptionMetadata.toolFeedbacks();
+                log.info("中断工具调用: {}", JackJsonUtil.toJsonStr(toolFeedbacks));
 
-        @Override
-        public Flux<String> chatStream (YumiContext context){
-            try {
-                ReactAgent agent = agentBuilderService.buildAgent(context);
-                long executeRound = idGeneratorService.nextId(context.getSessionKey());
-                RunnableConfig config = RunnableConfig.builder()
-                        .threadId(context.getSessionKey())
-                        .addMetadata(BASE_THREAD_ID, context.getSessionKey())
-                        .addMetadata(EXECUTE_ROUND, executeRound)
+                // 存入内存缓存
+                interruptionCache.put(context.getSessionKey(), interruptionMetadata.node(), interruptionMetadata);
+
+                Map<String, Object> extraInfo = new HashMap<>();
+                extraInfo.put("nodeId", interruptionMetadata.node());
+
+                return AgentResponse.builder()
+                        .type(TYPE_AUDIT)
+                        .confirmInfo(toolFeedbacks)
+                        .extraInfo(extraInfo)
                         .build();
+            } else {
+                log.info("未检测到中断，继续执行 threadId={}, executeRound={}", context.getSessionKey(), executeRound);
+                var assistantMessage = agent.extractAssistantMessage(Optional.ofNullable(output.state()));
+                String text = assistantMessage.getText();
+                if (text != null) {
+                    text = text.replace("\\n", "\n");
+                }
 
-                return agent.stream(context.getRequest().getMessage(), config)
-                        .filter(nodeOutput -> nodeOutput instanceof StreamingOutput streamingOutput
-                                && (streamingOutput.getOutputType() == OutputType.AGENT_MODEL_STREAMING
-                                || streamingOutput.getOutputType() == OutputType.AGENT_MODEL_FINISHED))
-                        .map(nodeOutput -> {
-                            StreamingOutput streamingOutput = (StreamingOutput) nodeOutput;
-                            String text = streamingOutput.message() != null ? streamingOutput.message().getText() : "";
-                            return text.replaceAll("data:", "");
-                        })
-                        .filter(text -> text != null && !text.isEmpty())
-                        .buffer(3)
-                        .map(chunks -> {
-                            String joined = String.join("", chunks);
-                            return joined.replace("\\n", "\n");
-                        })
-                        .doOnNext(merged -> log.info("chatStream merged: {}", merged))
-                        .onErrorResume(error -> {
-                            String errorMsg = "[错误] " + error.getMessage();
-                            return Flux.just(errorMsg);
-                        });
-            } catch (Exception e) {
-                String errorMsg = "[错误] " + e.getMessage();
-                return Flux.just(errorMsg);
+                return AgentResponse.builder()
+                        .type(TYPE_NORMAL)
+                        .message(text)
+                        .build();
             }
+
+
+        } catch (GraphRunnerException e) {
+            log.error("Agent call error", e);
+            return AgentResponse.builder()
+                    .type(TYPE_ERROR)
+                    .message("处理失败: " + e.getMessage())
+                    .build();
         }
-
-
     }
+
+    @Override
+    public Flux<String> chatStream(YumiContext context) {
+        try {
+            ReactAgent agent = agentBuilderService.buildAgent(context);
+            long executeRound = idGeneratorService.nextId(context.getSessionKey());
+            RunnableConfig config = RunnableConfig.builder()
+                    .threadId(context.getSessionKey())
+                    .addMetadata(BASE_THREAD_ID, context.getSessionKey())
+                    .addMetadata(EXECUTE_ROUND, executeRound)
+                    .build();
+
+            return agent.stream(context.getRequest().getMessage(), config)
+                    .filter(nodeOutput -> nodeOutput instanceof StreamingOutput streamingOutput
+                            && (streamingOutput.getOutputType() == OutputType.AGENT_MODEL_STREAMING
+                            || streamingOutput.getOutputType() == OutputType.AGENT_MODEL_FINISHED))
+                    .map(nodeOutput -> {
+                        StreamingOutput streamingOutput = (StreamingOutput) nodeOutput;
+                        String text = streamingOutput.message() != null ? streamingOutput.message().getText() : "";
+                        return text.replaceAll("data:", "");
+                    })
+                    .filter(text -> text != null && !text.isEmpty())
+                    .buffer(3)
+                    .map(chunks -> {
+                        String joined = String.join("", chunks);
+                        return joined.replace("\\n", "\n");
+                    })
+                    .doOnNext(merged -> log.info("chatStream merged: {}", merged))
+                    .onErrorResume(error -> {
+                        String errorMsg = "[错误] " + error.getMessage();
+                        return Flux.just(errorMsg);
+                    });
+        } catch (Exception e) {
+            String errorMsg = "[错误] " + e.getMessage();
+            return Flux.just(errorMsg);
+        }
+    }
+
+
+}
