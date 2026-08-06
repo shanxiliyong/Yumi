@@ -29,7 +29,7 @@ const currentSessionName = ref('')
 const digitalHumans = ref([])
 const selectedDigitalHumanId = ref(null)
 const sessions = ref([])
-const currentRequestType = ref('stream') // 当前会话的请求类型，默认流式
+const currentRequestType = ref('send') // 当前会话的请求类型，默认流式
 const showSidebar = ref(true)
 const editingSessionId = ref(null)
 const editingSessionName = ref('')
@@ -220,7 +220,7 @@ const loadMessagesFromBackend = async (sessionId) => {
       body: JSON.stringify(requestBody)
     })
     const data = await response.json()
-    console.log('从 checkpoint 获取的消息:', data)
+  
     if (data.success && data.data && data.data.length > 0) {
       messages.value = data.data.map((m, index) => ({
         id: Date.now() + index,
@@ -254,7 +254,7 @@ const loadMessagesFromBackend = async (sessionId) => {
 }
 
 const switchSession = async (session) => {
-  console.log('切换会话:', session)
+  console.log('切换会话 switchSession:', JSON.stringify(session, null, 2))
   sessionId.value = session.sessionId
   currentSessionName.value = session.name
   currentRequestType.value = session.requestType || 'send'
