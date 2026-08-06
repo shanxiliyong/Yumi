@@ -13,6 +13,7 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import yumi.common.InterruptionCache;
 import yumi.common.JackJsonUtil;
 import yumi.common.YumiContext;
 import yumi.response.AgentResponse;
@@ -38,6 +39,9 @@ public class BaseYumiAgent implements YumiAgent {
 
     @Autowired
     private IdGeneratorService idGeneratorService;
+
+    @Autowired
+    private InterruptionCache interruptionCache;
 
 
     public String chat3(YumiContext context) {
@@ -88,8 +92,11 @@ public class BaseYumiAgent implements YumiAgent {
                 List<InterruptionMetadata.ToolFeedback> toolFeedbacks = interruptionMetadata.toolFeedbacks();
                 log.info("中断工具调用: {}", JackJsonUtil.toJsonStr(toolFeedbacks));
 
+                // 存入内存缓存
+                interruptionCache.put(context.getSessionKey(), interruptionMetadata.node(), interruptionMetadata);
+
                 Map<String, Object> extraInfo = new HashMap<>();
-                extraInfo.put("nodeId", interruptionMetadata.nodeId());
+                extraInfo.put("nodeId", interruptionMetadata.node());
 
                 return AgentResponse.builder()
                         .type(TYPE_AUDIT)
@@ -105,7 +112,7 @@ public class BaseYumiAgent implements YumiAgent {
                 }
 
                 return AgentResponse.builder()
-                        .type("normal")
+                        .type(TYPE_NORMAL)
                         .message(text)
                         .build();
             }
@@ -114,7 +121,7 @@ public class BaseYumiAgent implements YumiAgent {
         } catch (GraphRunnerException e) {
             log.error("Agent call error", e);
             return AgentResponse.builder()
-                    .type("error")
+                    .type(TYPE_ERROR)
                     .message("处理失败: " + e.getMessage())
                     .build();
         }
