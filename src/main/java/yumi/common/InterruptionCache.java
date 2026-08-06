@@ -4,6 +4,7 @@ import com.alibaba.cloud.ai.graph.action.InterruptionMetadata;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -58,6 +59,14 @@ public class InterruptionCache {
             return null;
         }
         return sessionMap.get(nodeId);
+    }
+
+    /**
+     * 获取指定 session 的所有待审核中断
+     */
+    public Map<String, InterruptionMetadata> getAll(String sessionKey) {
+        Map<String, InterruptionMetadata> sessionMap = cache.get(sessionKey);
+        return sessionMap != null ? new HashMap<>(sessionMap) : new HashMap<>();
     }
 
     /**

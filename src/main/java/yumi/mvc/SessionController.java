@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import yumi.common.InterruptionCache;
 import yumi.common.JackJsonUtil;
 import yumi.common.YumiContext;
 import yumi.entity.DigitalHumanEntity;
@@ -32,12 +33,17 @@ public class SessionController {
     @Autowired
     private DigitalHumanService digitalHumanService;
 
+    @Autowired
+    private InterruptionCache interruptionCache;
+
     @GetMapping
     public ResponseEntity<Map<String, Object>> getSessions(@RequestParam("userId") String userId) {
         Map<String, Object> response = new HashMap<>();
         List<SessionEntity> sessions = sessionService.getSessionsByUserId(userId);
 
         List<Map<String, Object>> userSessions = new ArrayList<>();
+        Map<String, List<Map<String, Object>>> auditInfoMap = new HashMap<>();
+
         for (SessionEntity session : sessions) {
             DigitalHumanEntity digitalHuman = null;
             String requestType = "send"; // 默认流式
@@ -54,11 +60,28 @@ public class SessionController {
                     "name", session.getName(),
                     "requestType", requestType
             ));
+
+            // 查询该会话的待审核中断
+            String sessionKey = userId + "-" + (digitalHuman != null ? digitalHuman.getCode() : "") + "-" + session.getId();
+            Map<String, com.alibaba.cloud.ai.graph.action.InterruptionMetadata> interruptions = interruptionCache.getAll(sessionKey);
+            if (!interruptions.isEmpty()) {
+                List<Map<String, Object>> auditList = new ArrayList<>();
+                for (Map.Entry<String, com.alibaba.cloud.ai.graph.action.InterruptionMetadata> entry : interruptions.entrySet()) {
+                    String nodeId = entry.getKey();
+                    com.alibaba.cloud.ai.graph.action.InterruptionMetadata metadata = entry.getValue();
+                    Map<String, Object> auditItem = new HashMap<>();
+                    auditItem.put("nodeId", nodeId);
+                    auditItem.put("toolFeedbacks", metadata.toolFeedbacks());
+                    auditList.add(auditItem);
+                }
+                auditInfoMap.put(String.valueOf(session.getId()), auditList);
+            }
         }
 
         response.put("success", true);
         response.put("data", userSessions);
-        log.info("获取会话列表 - userId: {}, sessions: {}", userId, JackJsonUtil.toJsonStr(userSessions));
+        response.put("auditInfo", auditInfoMap);
+        log.info("获取会话列表 - userId: {}, sessions: {}, auditInfo: {}", userId, JackJsonUtil.toJsonStr(userSessions), JackJsonUtil.toJsonStr(auditInfoMap));
         return ResponseEntity.ok(response);
     }
 
