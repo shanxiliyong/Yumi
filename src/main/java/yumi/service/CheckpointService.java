@@ -23,6 +23,10 @@ public class CheckpointService {
     public List<CheckpointEntity> getAllByThreadId(String threadId) {
         List<CheckpointEntity> list = checkpointMapper.selectByThreadIdOrderBySeq(threadId);
         processCheckpoints(list);
+        list.removeIf(cp -> cp.getNodeId() != null && (
+                cp.getNodeId().contains("_AGENT_HOOK_InstructionAgentHook") ||
+                        cp.getNodeId().contains("_AGENT_HOOK_custom_model_hook")
+        ));
         return list;
     }
 
@@ -39,7 +43,7 @@ public class CheckpointService {
             checkpoint.setMessageContent(messageContent);
 
             // 计算耗时（毫秒）
-            if (i == 0) {
+            if ("__START__".equals(nodeId)) {
                 checkpoint.setDuration(0L);
             } else {
                 LocalDateTime prevSavedAt = list.get(i - 1).getSavedAt();
