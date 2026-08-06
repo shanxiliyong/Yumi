@@ -124,7 +124,7 @@ onMounted(() => {
         <ElTableColumn prop="checkpointSeq" label="序号" width="60" />
         <ElTableColumn prop="threadId" label="AgentId" min-width="200" />
         <ElTableColumn prop="nodeId" label="当前节点" min-width="200" />
-        <ElTableColumn label="消息内容" min-width="250">
+        <ElTableColumn label="消息内容" min-width="350">
           <template #default="{ row }">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span v-html="getMessageContent(row)"></span>
@@ -141,7 +141,7 @@ onMounted(() => {
           </template>
         </ElTableColumn>
 
-        <ElTableColumn label="保存时间" width="180">
+        <ElTableColumn label="保存时间" width="170">
           <template #default="{ row }">
             {{ formatSavedAt(row.savedAt) }}
           </template>

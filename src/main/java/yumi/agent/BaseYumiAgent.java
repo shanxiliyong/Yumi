@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import yumi.common.YumiContext;
 
+import static yumi.common.ConstantUtil.BASE_THREAD_ID;
+
 @Slf4j
 @Component
 public class BaseYumiAgent implements YumiAgent {
@@ -25,6 +27,7 @@ public class BaseYumiAgent implements YumiAgent {
             ReactAgent agent = agentBuilderService.buildAgent(context);
             RunnableConfig config = RunnableConfig.builder()
                     .threadId(context.getSessionKey())
+                    .addMetadata(BASE_THREAD_ID, context.getSessionKey())
                     .build();
             var result = agent.call(context.getRequest().getMessage(), config);
             String text = result.getText();
