@@ -4,7 +4,7 @@ import { ElButton, ElInput, ElCard, ElMessage } from 'element-plus'
 
 const emit = defineEmits(['login-success'])
 
-const username = ref('')
+const username = ref('Yumi0')
 const loading = ref(false)
 
 const handleLogin = async () => {

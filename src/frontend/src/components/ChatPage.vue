@@ -206,6 +206,8 @@ const deleteSession = async (sessionIdToDelete) => {
 }
 
 const loadMessagesFromBackend = async (sessionId) => {
+  // 先清空旧消息
+  messages.value = []
   try {
     const requestBody = {
       userId: userId.value,
@@ -239,12 +241,16 @@ const loadMessagesFromBackend = async (sessionId) => {
         }
       })
     }
+    // 如果没有任何消息，显示欢迎语
+    if (messages.value.length === 0) {
+      messages.value = [{ id: 1, type: 'bot', content: '你好！我是 Yumi 优秘，很高兴为你服务。有什么我可以帮助你的吗？' }]
+    }
     return true
   } catch (e) {
     console.error('获取消息失败:', e)
+    messages.value = [{ id: 1, type: 'bot', content: '你好！我是 Yumi 优秘，很高兴为你服务。有什么我可以帮助你的吗？' }]
+    return false
   }
-  messages.value = [{ id: 1, type: 'bot', content: '你好！我是 Yumi 优秘，很高兴为你服务。有什么我可以帮助你的吗？' }]
-  return false
 }
 
 const switchSession = async (session) => {
@@ -649,7 +655,7 @@ onMounted(() => {
                 </div>
                 <ElTable :data="msg.auditData?.confirmInfo || []" border size="small" style="margin-top: 8px">
                   <ElTableColumn prop="name" label="工具" width="100" />
-                  <ElTableColumn prop="arguments" label="参数" min-width="200" show-overflow-tooltip />
+                  <ElTableColumn prop="arguments" label="参数" min-width="500" show-overflow-tooltip />
                 </ElTable>
                 <div class="audit-actions">
                   <ElButton size="small" @click="handleAuditCancel(msg)" :loading="msg.loading">取消</ElButton>
@@ -1464,7 +1470,7 @@ onMounted(() => {
   border: 1px solid #e4e7ed;
   border-radius: 12px;
   padding: 16px;
-  max-width: 500px;
+  max-width: 900px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
