@@ -1,6 +1,6 @@
 <script setup>
 import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue'
-import { ElButton, ElInput, ElAvatar, ElMessage, ElSelect, ElOption, ElDrawer, ElPopconfirm, ElIcon, ElDropdown, ElDropdownMenu, ElDropdownItem, ElDialog } from 'element-plus'
+import { ElButton, ElInput, ElAvatar, ElMessage, ElSelect, ElOption, ElDrawer, ElPopconfirm, ElIcon, ElDropdown, ElDropdownMenu, ElDropdownItem, ElDialog, ElTable, ElTableColumn } from 'element-plus'
 import { Setting } from '@element-plus/icons-vue'
 import { marked } from 'marked'
 
@@ -25,11 +25,6 @@ const chatContainer = ref(null)
 const userId = ref(localStorage.getItem('userId') || '')
 const sessionId = ref(localStorage.getItem('currentSessionId') ? parseInt(localStorage.getItem('currentSessionId')) : null)
 const currentSessionName = ref('')
-
-// 审核相关状态
-const showAuditDialog = ref(false)
-const auditData = ref(null)
-const auditLoading = ref(false)
 
 const digitalHumans = ref([])
 const selectedDigitalHumanId = ref(null)
@@ -369,10 +364,8 @@ const sendNonStreamMessage = async (userMessage) => {
 
   // 检查返回类型
   if (data.type === 'audit') {
-    // 审核中断
-    auditData.value = data
-    showAuditDialog.value = true
-    return
+    // 审核中断 - 作为消息内联显示
+    messages.value.push({ id: Date.now() + 2, type: 'audit', auditData: data })
   } else if (data.type === 'normal') {
     // 普通消息
     messages.value.push({ id: Date.now() + 2, type: 'bot', content: data.message || '' })
@@ -386,17 +379,17 @@ const sendNonStreamMessage = async (userMessage) => {
 }
 
 // 审核确认
-const handleAuditApprove = async () => {
-  if (!auditData.value) return
-  auditLoading.value = true
+const handleAuditApprove = async (auditMsg) => {
+  if (!auditMsg || !auditMsg.auditData) return
+  auditMsg.loading = true
   try {
     const requestBody = {
       userId: userId.value,
       sessionId: sessionId.value,
       type: 'audit',
-      nodeId: auditData.value.extraInfo?.nodeId,
+      nodeId: auditMsg.auditData.extraInfo?.nodeId,
       approved: true,
-      toolFeedbacks: auditData.value.confirmInfo
+      toolFeedbacks: auditMsg.auditData.confirmInfo
     }
     const response = await fetch('/api/chat/send', {
       method: 'POST',
@@ -404,31 +397,32 @@ const handleAuditApprove = async () => {
       body: JSON.stringify(requestBody)
     })
     const data = await response.json()
-    showAuditDialog.value = false
     if (data.type === 'normal') {
       messages.value.push({ id: Date.now() + 2, type: 'bot', content: data.message })
     } else {
       messages.value.push({ id: Date.now() + 2, type: 'bot', content: data.message || '审核失败' })
     }
+    // 移除审核消息
+    messages.value = messages.value.filter(m => m.id !== auditMsg.id)
   } catch (e) {
     ElMessage.error('审核请求失败')
   } finally {
-    auditLoading.value = false
+    auditMsg.loading = false
   }
 }
 
 // 审核取消
-const handleAuditCancel = async () => {
-  if (!auditData.value) return
-  auditLoading.value = true
+const handleAuditCancel = async (auditMsg) => {
+  if (!auditMsg || !auditMsg.auditData) return
+  auditMsg.loading = true
   try {
     const requestBody = {
       userId: userId.value,
       sessionId: sessionId.value,
       type: 'audit',
-      nodeId: auditData.value.extraInfo?.nodeId,
+      nodeId: auditMsg.auditData.extraInfo?.nodeId,
       approved: false,
-      toolFeedbacks: auditData.value.confirmInfo
+      toolFeedbacks: auditMsg.auditData.confirmInfo
     }
     const response = await fetch('/api/chat/send', {
       method: 'POST',
@@ -436,12 +430,13 @@ const handleAuditCancel = async () => {
       body: JSON.stringify(requestBody)
     })
     const data = await response.json()
-    showAuditDialog.value = false
     messages.value.push({ id: Date.now() + 2, type: 'bot', content: data.message || '已取消执行' })
+    // 移除审核消息
+    messages.value = messages.value.filter(m => m.id !== auditMsg.id)
   } catch (e) {
     ElMessage.error('取消请求失败')
   } finally {
-    auditLoading.value = false
+    auditMsg.loading = false
   }
 }
 
@@ -620,6 +615,24 @@ onMounted(() => {
               <ElAvatar class="avatar bot-avatar">Y</ElAvatar>
               <div class="message-content bot-content" v-html="renderMarkdown(msg.content)"></div>
             </template>
+            <template v-else-if="msg.type === 'audit'">
+              <ElAvatar class="avatar bot-avatar">Y</ElAvatar>
+              <div class="message-content audit-content">
+                <div class="audit-header">
+                  <span class="audit-icon">🔒</span>
+                  <span class="audit-title">工具调用审核</span>
+                  <span class="audit-node">节点: {{ msg.auditData?.extraInfo?.nodeId }}</span>
+                </div>
+                <ElTable :data="msg.auditData?.confirmInfo || []" border size="small" style="margin-top: 8px">
+                  <ElTableColumn prop="name" label="工具" width="100" />
+                  <ElTableColumn prop="arguments" label="参数" min-width="200" show-overflow-tooltip />
+                </ElTable>
+                <div class="audit-actions">
+                  <ElButton size="small" @click="handleAuditCancel(msg)" :loading="msg.loading">取消</ElButton>
+                  <ElButton size="small" type="primary" @click="handleAuditApprove(msg)" :loading="msg.loading">确认执行</ElButton>
+                </div>
+              </div>
+            </template>
             <template v-else-if="msg.type === 'loading'">
               <ElAvatar class="avatar bot-avatar">Y</ElAvatar>
               <div class="loading-indicator"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
@@ -687,24 +700,6 @@ onMounted(() => {
       <div class="dialog-footer">
         <ElButton @click="showCreateDialog = false">取消</ElButton>
         <ElButton type="primary" @click="confirmCreateSession">确定</ElButton>
-      </div>
-    </template>
-  </ElDialog>
-
-  <!-- 审核弹窗 -->
-  <ElDialog v-model="showAuditDialog" title="工具调用审核" width="600px" :close-on-click-modal="false" :close-on-press-escape="false">
-    <div class="audit-dialog">
-      <div class="audit-node">节点: {{ auditData?.extraInfo?.nodeId }}</div>
-      <ElTable :data="auditData?.confirmInfo || []" border style="margin-top: 12px">
-        <ElTableColumn prop="name" label="工具名称" width="120" />
-        <ElTableColumn prop="arguments" label="参数" min-width="200" show-overflow-tooltip />
-        <ElTableColumn prop="description" label="说明" min-width="200" show-overflow-tooltip />
-      </ElTable>
-    </div>
-    <template #footer>
-      <div class="dialog-footer">
-        <ElButton @click="handleAuditCancel" :loading="auditLoading">取消</ElButton>
-        <ElButton type="primary" @click="handleAuditApprove" :loading="auditLoading">确认执行</ElButton>
       </div>
     </template>
   </ElDialog>
@@ -1439,17 +1434,42 @@ onMounted(() => {
   gap: 12px;
 }
 
-/* 审核弹窗样式 */
-.audit-dialog {
-  padding: 8px 0;
+/* 审核内联消息样式 */
+.audit-content {
+  background: #fff;
+  border: 1px solid #e4e7ed;
+  border-radius: 12px;
+  padding: 16px;
+  max-width: 500px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.audit-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.audit-icon {
+  font-size: 18px;
+}
+
+.audit-title {
+  font-weight: 600;
+  color: #303133;
 }
 
 .audit-node {
-  font-size: 14px;
-  color: #606266;
-  padding: 8px 12px;
-  background: #f5f7fa;
-  border-radius: 6px;
-  font-family: monospace;
+  font-size: 12px;
+  color: #909399;
+  margin-left: auto;
+}
+
+.audit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 12px;
 }
 </style>
