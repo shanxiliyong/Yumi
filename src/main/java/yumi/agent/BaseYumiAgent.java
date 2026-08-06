@@ -10,8 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import yumi.common.YumiContext;
+import yumi.service.IdGeneratorService;
 
 import static yumi.common.ConstantUtil.BASE_THREAD_ID;
+import static yumi.common.ConstantUtil.EXECUTE_ROUND;
 
 @Slf4j
 @Component
@@ -20,14 +22,19 @@ public class BaseYumiAgent implements YumiAgent {
     @Autowired
     private AgentBuilderService agentBuilderService;
 
+    @Autowired
+    private IdGeneratorService idGeneratorService;
+
 
     @Override
     public String chat(YumiContext context) {
         try {
             ReactAgent agent = agentBuilderService.buildAgent(context);
+            long executeRound = idGeneratorService.nextId(context.getSessionKey());
             RunnableConfig config = RunnableConfig.builder()
                     .threadId(context.getSessionKey())
                     .addMetadata(BASE_THREAD_ID, context.getSessionKey())
+                    .addMetadata(EXECUTE_ROUND, executeRound)
                     .build();
             var result = agent.call(context.getRequest().getMessage(), config);
             String text = result.getText();
@@ -45,8 +52,11 @@ public class BaseYumiAgent implements YumiAgent {
     public Flux<String> chatStream(YumiContext context) {
         try {
             ReactAgent agent = agentBuilderService.buildAgent(context);
+            long executeRound = idGeneratorService.nextId(context.getSessionKey());
             RunnableConfig config = RunnableConfig.builder()
                     .threadId(context.getSessionKey())
+                    .addMetadata(BASE_THREAD_ID, context.getSessionKey())
+                    .addMetadata(EXECUTE_ROUND, executeRound)
                     .build();
 
             return agent.stream(context.getRequest().getMessage(), config)

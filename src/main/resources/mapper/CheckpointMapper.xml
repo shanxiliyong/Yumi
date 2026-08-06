@@ -9,6 +9,7 @@
         SELECT checkpoint_seq AS checkpointSeq,
                thread_id AS threadId,
                base_thread_id AS baseThreadId,
+               execute_round AS executeRound,
                node_id AS nodeId,
                next_node_id AS nextNodeId,
                state_data_json AS stateDataJson,

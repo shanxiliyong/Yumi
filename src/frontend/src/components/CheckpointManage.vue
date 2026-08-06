@@ -123,6 +123,7 @@ onMounted(() => {
       <ElTable :data="checkpoints" stripe style="width: 100%" v-loading="loading">
         <ElTableColumn prop="checkpointSeq" label="序号" width="60" />
         <ElTableColumn prop="threadId" label="AgentId" min-width="200" />
+        <ElTableColumn prop="executeRound" label="轮次" width="80" />
         <ElTableColumn prop="nodeId" label="当前节点" min-width="200" />
         <ElTableColumn label="消息内容" min-width="350">
           <template #default="{ row }">

@@ -177,8 +177,8 @@ public class MysqlSaver extends AbstractJdbcCheckpointSaver {
 			""";
 
     private static final String INSERT_CHECKPOINT = """
-			INSERT INTO GRAPH_CHECKPOINT(checkpoint_id, thread_id, node_id, next_node_id, state_data,state_data_json,base_thread_id)
-			SELECT ?, thread_id, ?, ?, ?,?,?
+			INSERT INTO GRAPH_CHECKPOINT(checkpoint_id, thread_id, node_id, next_node_id, state_data,state_data_json,base_thread_id,execute_round)
+			SELECT ?, thread_id, ?, ?, ?,?,?,?
 			FROM GRAPH_THREAD
 			WHERE thread_name = ? AND is_released = FALSE
 			""";
@@ -479,7 +479,8 @@ public class MysqlSaver extends AbstractJdbcCheckpointSaver {
     }
 
     public void insertMysqlCheckpoint(String threadName, Checkpoint checkpoint, RunnableConfig config) throws Exception {
-        String BASE_THREAD_ID = (String) config.metadata(ConstantUtil.BASE_THREAD_ID).orElse(threadName);
+        String baseThreadId = (String) config.metadata(ConstantUtil.BASE_THREAD_ID).orElse(threadName);
+        Long executeRound = (Long) config.metadata(ConstantUtil.EXECUTE_ROUND).orElse(0L);
 
         Connection conn = null;
         try (Connection ignored = conn = dataSource.getConnection()) {
@@ -497,8 +498,9 @@ public class MysqlSaver extends AbstractJdbcCheckpointSaver {
                 insertCheckpointStatement.setString(3, checkpoint.getNextNodeId());
                 insertCheckpointStatement.setString(4, encodeState(checkpoint.getState()));
                 insertCheckpointStatement.setString(5, JackJsonUtil.toJsonStr(checkpoint.getState()));
-                insertCheckpointStatement.setString(6, BASE_THREAD_ID);
-                insertCheckpointStatement.setString(7, threadName);
+                insertCheckpointStatement.setString(6, baseThreadId);
+                insertCheckpointStatement.setLong(7, executeRound);
+                insertCheckpointStatement.setString(8, threadName);
 
                 insertCheckpointStatement.execute();
             }
