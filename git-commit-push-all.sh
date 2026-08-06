@@ -57,12 +57,21 @@ done
 echo ""
 
 # 4. 推送到所有 remote
-echo -e "${YELLOW}[4/4] 推送到所有 Remote...${NC}"
+echo -e "${YELLOW}[4/4] 拉取远程更新并推送到所有 Remote...${NC}"
 SUCCESS_COUNT=0
 FAIL_COUNT=0
 
 for remote in $REMOTES; do
-    echo -e "\n${GREEN}推送到 $remote...${NC}"
+    echo -e "\n${GREEN}从 $remote 拉取更新...${NC}"
+    git pull --rebase "$remote" main
+    
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}✗ $remote 拉取失败，跳过推送${NC}"
+        FAIL_COUNT=$((FAIL_COUNT + 1))
+        continue
+    fi
+    
+    echo -e "${GREEN}推送到 $remote...${NC}"
     git push "$remote"
     
     if [ $? -eq 0 ]; then
