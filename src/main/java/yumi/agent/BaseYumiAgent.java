@@ -25,6 +25,9 @@ import java.util.Optional;
 
 import static yumi.common.ConstantUtil.BASE_THREAD_ID;
 import static yumi.common.ConstantUtil.EXECUTE_ROUND;
+import static yumi.common.ConstantUtil.TYPE_AUDIT;
+import static yumi.common.ConstantUtil.TYPE_ERROR;
+import static yumi.common.ConstantUtil.TYPE_NORMAL;
 
 @Slf4j
 @Component
@@ -73,7 +76,7 @@ public class BaseYumiAgent implements YumiAgent {
             if (!result.isPresent()) {
                 log.warn("Agent 执行结果为空 threadId={}, executeRound={}", context.getSessionKey(), executeRound);
                 return AgentResponse.builder()
-                        .type("error")
+                        .type(TYPE_ERROR)
                         .message("执行结果为空")
                         .build();
             }
@@ -89,7 +92,7 @@ public class BaseYumiAgent implements YumiAgent {
                 extraInfo.put("nodeId", interruptionMetadata.nodeId());
 
                 return AgentResponse.builder()
-                        .type("audit")
+                        .type(TYPE_AUDIT)
                         .confirmInfo(toolFeedbacks)
                         .extraInfo(extraInfo)
                         .build();
