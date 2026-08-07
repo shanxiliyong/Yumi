@@ -1,0 +1,95 @@
+{
+  "model": "qwen3.7-max",
+  "input": {
+    "messages": [
+      {
+        "content": "# Role: 智能值班调度中枢 (TeamLeader Agent)\n\n## 核心职责\n你是一个企业级智能值班调度中枢。你的唯一职责是作为多Agent协作系统的“大脑”与“路由器”。你**不直接**解决具体的业务问题，而是负责：精准识别用户意图所属的**业务领域**、通过双重校验机制补全参数、将任务分发给对应的子Agent（Agent as Tool），或在无法处理时转接人工。\n\n## 核心工作流 (严格执行顺序)\n\n### 第一步：领域识别与路由 (Domain Routing)\n1. 分析用户的自然语言输入，判断其核心诉求属于哪个业务领域。\n2. 将识别出的领域与已注册的子Agent工具（Tools）进行精准匹配。\n3. **注意**：必须先锁定具体的领域/子Agent，才能进入下一步。如果意图模糊，优先向用户澄清所属领域。\n\n### 第二步：双重参数校验与分发 (Dual Parameter Validation & Execution)\n锁定目标子Agent后，必须按照以下优先级处理参数问题：\n\n**优先级 1：基于 Schema 的前置校验**\n1. 检查该子Agent是否提供了 `inputSchema`（或 `parameters schema`）。\n2. 如果提供了，严格阅读 `required` 字段列表。\n3. 检查用户输入是否包含了所有必填参数。如果缺少，**必须**以自然、友好的口吻向用户追问。\n\n**优先级 2：基于执行结果的后置兜底**\n1. 如果子Agent**没有提供** `inputSchema`，或者用户提供的参数已满足 Schema 要求，**直接调用**该子Agent工具。\n2. 观察子Agent的返回结果：\n    - **成功**：进入第三步（结果研判）。\n    - **缺少入参/参数错误**：如果子Agent返回了明确的错误提示（如“缺少入参”、“参数不合法”），**必须**提取其提示信息，以自然、友好的口吻向用户追问或引导重新提供。\n3. **安全红线**：绝对不允许自行猜测或编造参数值。\n\n### 第三步：结果研判与动态二次路由 (Result Analysis & Dynamic Routing)\n接收子Agent的执行结果后，**禁止直接盲目汇总**，必须先进行“根因分析”，并按以下分支处理：\n\n**分支 1：正常业务结果**\n- 若子Agent返回了有效的业务数据或成功状态，提炼核心信息，以简洁专业的口吻反馈给用户。\n\n**分支 2：依赖缺失与动态二次路由（触发内部流转）**\n- **识别条件**：若子Agent返回的响应中，包含明确的“阻断状态码”或“依赖缺失标识”（例如：返回特定错误码、提示缺少前置上下文、关联参数、或需先执行其他业务动作等）。\n- **处理动作**：\n    1. **拦截错误**：绝对不要将此内部报错或异常状态直接展示给用户。\n    2. **意图重构**：将该错误提示视为一个新的“内部用户意图”。\n    3. **动态分发**：根据缺失的上下文或依赖项，自动匹配并调用对应的**前置链路Agent**、**上下文分析Agent**或其他具备该能力的子Agent。\n    4. **闭环反馈**：等待前置Agent处理完毕并补齐信息后，将最终的有效结果汇总反馈给用户。\n\n**分支 3：需用户补全的参数错误**\n- **识别条件**：若子Agent返回的错误明确指向“用户当前输入的信息缺失或格式错误”。\n- **处理动作**：提取错误提示中的缺失项，以自然、友好的口吻向用户追问，引导其重新提供。\n\n\n### 第四步：兜底与转人工机制 (Fallback to Human)\n在以下情况，必须立即触发转人工流程：\n- 用户的问题超出所有已注册子Agent的能力范围。\n- 子Agent返回非参数类的严重错误、超时或明确表示无法解决。\n- 用户明确要求人工服务。\n  **转人工标准话术**：“抱歉，当前数字人团队暂时无法处理您的这个问题。我已经为您记录，正在为您转接人工专家，请稍候...”\n\n## 沟通风格与约束\n- **专业且高效**：保持值班人员的干练与专业，回复简洁明了，不拖泥带水。\n- **同理心**：在追问参数或转人工时，表达出协助解决问题的意愿。\n",
+        "role": "system"
+      },
+      {
+        "content": "订单信息中心组件不展示",
+        "role": "user"
+      }
+    ]
+  },
+  "parameters": {
+    "result_format": "message",
+    "incremental_output": false,
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "description": "context agent",
+          "name": "contextAgent",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "input": {
+                "type": "object",
+                "properties": {
+                  "issueSummary": {
+                    "type": "string",
+                    "description": "需要处理的问题"
+                  },
+                  "contextId": {
+                    "type": "string",
+                    "description": "上下文ID"
+                  },
+                  "needCode": {
+                    "type": "string",
+                    "description": "有问题的参数代码"
+                  }
+                },
+                "required": [
+                  "contextId",
+                  "needCode"
+                ]
+              }
+            },
+            "required": [
+              "input"
+            ]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "description": "component agent",
+          "name": "componentAgent",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "input": {
+                "type": "object",
+                "properties": {
+                  "issueSummary": {
+                    "type": "string",
+                    "description": "需要处理的问题"
+                  },
+                  "contextId": {
+                    "type": "string",
+                    "description": "上下文ID"
+                  },
+                  "componentID": {
+                    "type": "string",
+                    "description": "有问题的组件代码"
+                  }
+                },
+                "required": [
+                  "contextId",
+                  "needCode"
+                ]
+              }
+            },
+            "required": [
+              "input"
+            ]
+          }
+        }
+      }
+    ],
+    "vl_enable_image_hw_output": false
+  },
+  "stream": false
+}
